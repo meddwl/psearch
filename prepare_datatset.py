@@ -114,7 +114,7 @@ if __name__ == '__main__':
                         help='specify threshold used to determine inactive compounds.'
                              'Compounds having activity less or equal to the given'
                              'value will be recognized as inactive.')
-    parser.add_argument('--gen_tautomers', action='store_true', default=False,
+    parser.add_argument('-t', '--gen_tautomers', action='store_true', default=False,
                         help='if True tautomers at pH 7.4 are generated using Chemaxon.')
     parser.add_argument('-n', '--nconf', metavar='conf_number', default=100,
                         help='number of generated conformers.')
@@ -145,9 +145,6 @@ if __name__ == '__main__':
         if o == "tolerance": tolerance = float(v)
         if o == "fdef_fname": fdef_fname = v
         if o == "ncpu": ncpu = int(v)
-
-    if fdef_fname is None:
-        fdef_fname = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pmapper', 'smarts_features.fdef')
 
     main(in_fname=in_fname,
          act_threshold=act_threshold,

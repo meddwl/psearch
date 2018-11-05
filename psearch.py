@@ -159,7 +159,7 @@ if __name__ == '__main__':
                              'definitions provided by --rdkit_fdef argument.')
     parser.add_argument('-t', '--treshold_clust', default=0.4,
                         help='treshold for сlustering data by Butina algorithm')
-    parser.add_argument('-clz', '--clust_size', default=5,
+    parser.add_argument('-cz', '--clust_size', default=5,
                         help='minimum cluster size from extract centroinds for training set')
     parser.add_argument('-ma', '--max_act_ts', default=5,
                         help='maximum number of active compounds for training set')

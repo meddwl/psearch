@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
+# author          : Alina Kutlushina
+# date            : 01.05.2018
+# license         : BSD-3
+#==============================================================================
 
 import sys
 import argparse
 import pandas as pd
 
 
-def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshold, label=False):
+def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshold, label):
 
     if label:
-        df = pd.read_csv(in_fname, sep=';')
+        df = pd.read_csv(in_fname, sep=',')
         df_act = df[df[2] == 'active']
         df_act.to_csv(out_act_fname, sep='\t', index=None, header=None)
         df_inact = df[df[2] == 'inactive']
@@ -48,20 +52,22 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--in', metavar='input.smi', required=True,
                         help='input SMILES file name. It should contain three columns separated by whitespaces: '
                              'SMILES, name, activity. No header.')
-    parser.add_argument('--out_act', metavar='active.smi', required=True,
+    parser.add_argument('-oa', '--out_act', metavar='active.smi', required=True,
                         help='output SMILES file name for active compounds.')
-    parser.add_argument('--out_inact', metavar='inactive.smi', required=True,
+    parser.add_argument('-oi', '--out_inact', metavar='inactive.smi', required=True,
                         help='output SMILES file name for inactive compounds.')
-    parser.add_argument('--act_threshold', metavar='VALUE', default=8.0,
+    parser.add_argument('-ta', '--act_threshold', metavar='VALUE', default=8.0,
                         help='specify threshold used to determine active compounds.'
                              'Compounds having activity higher or equal to the given'
                              'value will be recognized as active. Default: 8.')
-    parser.add_argument('--inact_threshold', metavar='inact_threshold', default=6.0,
+    parser.add_argument('-ti', '--inact_threshold', metavar='inact_threshold', default=6.0,
                         help='specify threshold used to determine inactive compounds.'
                              'Compounds having activity less or equal to the given'
                              'value will be recognized as inactive. Default: 6.')
     parser.add_argument('-l', '--label', action='store_true', default=False,
-                        help='')
+                        help='a criterion of molecules separation. '
+                             'If True - absolute separation of molecules into active and inactive.'
+                             'If False - separation of molecules into active and inactive by value (example, -1/log(IC50)).')
 
     args = vars(parser.parse_args())
     for o, v in args.items():
