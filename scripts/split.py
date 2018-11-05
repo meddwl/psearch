@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
-# author          : Alina Kutlushina
-# date            : 01.05.2018
-# license         : BSD-3
-#==============================================================================
 
 import sys
 import argparse
 import pandas as pd
 
 
-def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshold, log_ic50=True):
+def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshold, label=False):
 
-    if log_ic50:
+    if label:
+        df = pd.read_csv(in_fname, sep=';')
+        df_act = df[df[2] == 'active']
+        df_act.to_csv(out_act_fname, sep='\t', index=None, header=None)
+        df_inact = df[df[2] == 'inactive']
+        df_inact.to_csv(out_inact_fname, sep='\t', index=None, header=None)
+
+        n_act = df_act.shape[0]
+        n_inact = df_inact.shape[0]
+
+    else:
         fact = open(out_act_fname, 'wt')
         finact = open(out_inact_fname, 'wt')
 
@@ -21,7 +27,6 @@ def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshol
         try:
             with open(in_fname) as f:
                 for line in f:
-                    # row = re.split(r',|;|\s|\t', line.strip())
                     row = line.strip().split(',')
                     if float(row[2]) >= act_threshold:
                         fact.write('\t'.join(row[:3]) + '\n')
@@ -34,16 +39,7 @@ def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshol
             fact.close()
             finact.close()
 
-    else:
-        df = pd.read_csv(in_fname, sep=';')
-        df_act = df[df['status'] == 'active']
-        df_act = df_act[['standardized_canonical_smiles', 'cmp', 'status']]
-        df_act.to_csv(out_act_fname, sep='\t', index=None, header=None)
-        df_inact = df[df['status'] == 'inactive']
-        df_inact = df_inact[['standardized_canonical_smiles', 'cmp', 'status']]
-        df_inact.to_csv(out_inact_fname, sep='\t', index=None, header=None)
-
-    sys.stderr.write('actives: %i, inactives: %i.\n' % (df_act.shape[0], df_inact.shape[0]))
+    sys.stderr.write('actives: %i, inactives: %i.\n' % (n_act, n_inact))
 
 
 if __name__ == '__main__':
@@ -64,6 +60,8 @@ if __name__ == '__main__':
                         help='specify threshold used to determine inactive compounds.'
                              'Compounds having activity less or equal to the given'
                              'value will be recognized as inactive. Default: 6.')
+    parser.add_argument('-l', '--label', action='store_true', default=False,
+                        help='')
 
     args = vars(parser.parse_args())
     for o, v in args.items():
@@ -72,10 +70,11 @@ if __name__ == '__main__':
         if o == "out_inact": out_inact_fname = v
         if o == "act_threshold": act_threshold = float(v)
         if o == "inact_threshold": inact_threshold = float(v)
+        if o == "label": label = v
 
     main(in_fname=in_fname,
          out_act_fname=out_act_fname,
          out_inact_fname=out_inact_fname,
          act_threshold=act_threshold,
-         inact_threshold=inact_threshold)
-
+         inact_threshold=inact_threshold,
+         label=label)

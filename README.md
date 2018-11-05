@@ -20,6 +20,8 @@ git submodule update
 It is recommended to create an empty dir which would be your `$PROJECT_DIR` and copy an input file to that location.  
 There are two steps of pharmacophore model generation.  
 
+'I.' 
+
 1. Data set preparation. It takes as input a comma-separated SMILES file containing `SMILES`, `compound id`, `activity value`. It splits the input on active and inactive subsets, generates stereoisomers and conformers, creates databases of active and inactive compounds with labeled pharmacophore features.
 ```python
 python3 prepare_datatset.py -i $PROJECT_DIR/input.smi -l 6 -u 8 -c 4
@@ -38,6 +40,8 @@ python3 phsearch_mp.py -p $PROJECT_DIR -t 0.4 -c 4
 `-p` - path to the project dir;  
 `-t` - threshold for compound clustering to create training sets;  
 `-c`- number of CPUs to use
+
+'II.' 
 
 ## Authors
 Alina Kutlushina, Pavel Polishchuk
