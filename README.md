@@ -35,7 +35,7 @@ There are other arguments available to tweak data set preparation. To get the fu
 2. Model building.  
 
 ```python
-python3 phsearch_mp.py -p $PROJECT_DIR -t 0.4 -c 4
+python3 psearch.py -p $PROJECT_DIR -t 0.4 -c 4
 ```
 `-p` - path to the project dir;  
 `-t` - threshold for compound clustering to create training sets;  

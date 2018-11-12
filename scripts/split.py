@@ -67,7 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--label', action='store_true', default=False,
                         help='a criterion of molecules separation. '
                              'If True - absolute separation of molecules into active and inactive.'
-                             'If False - separation of molecules into active and inactive by value (example, -1/log(IC50)).')
+                             'If False - separation of molecules into active and inactive by value')
 
     args = vars(parser.parse_args())
     for o, v in args.items():
