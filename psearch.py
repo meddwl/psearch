@@ -33,13 +33,8 @@ def calc(mol_act, mol_inact,
     if path_pma != None:
         
         path_screen = os.path.join(os.path.dirname(os.path.abspath(in_adb)), 'screen',
-                                os.path.basename(files_ats).split('.')[0].split('_')[1], 'pharm%i' % num)
-        if not os.path.exists(os.path.split(os.path.split(path_screen)[0])[0]):
-            os.mkdir(os.path.split(os.path.split(path_screen)[0])[0])
-        if not os.path.exists(os.path.split(path_screen)[0]):
-            os.mkdir(os.path.split(path_screen)[0])
-        if not os.path.exists(path_screen):
-            os.mkdir(path_screen)
+                                   os.path.basename(files_ats).split('.')[0].split('_')[1], 'pharm%i' % num)
+        os.makedirs(path_screen, exist_ok=True)
 
         time_start = time.time()
         
