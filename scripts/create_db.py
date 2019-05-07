@@ -6,15 +6,18 @@
 
 import os
 import sys
+import gzip
+import pickle
+import marshal
 import argparse
 import sqlite3 as lite
-import marshal
 
 from rdkit import Chem
 from rdkit.Chem import ChemicalFeatures
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
-from scripts.read_input import read_input
 from multiprocessing import cpu_count, Pool
+from scripts.read_input import read_input
+#sys.path.insert(1, os.path.join(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0], 'pmapper'))
 from pmapper.pharmacophore import Pharmacophore, read_smarts_feature_file, load_multi_conf_mol
 
 
@@ -23,6 +26,7 @@ def create_tables(cursor, bin_step, smarts, store_coords, fp, nohash):
                    "mol_stereo_id TEXT)")
     if not nohash:
         cursor.execute("ALTER TABLE conformers ADD COLUMN ph_hash BLOB")
+        cursor.execute("ALTER TABLE conformers ADD COLUMN pharm_obj BLOB")
     if fp:
         cursor.execute("ALTER TABLE conformers ADD COLUMN fp BLOB")
     cursor.execute("CREATE INDEX mol_name_idx ON conformers(mol_name)")
@@ -40,7 +44,7 @@ def create_tables(cursor, bin_step, smarts, store_coords, fp, nohash):
 
 
 def insert_res_db(cur, res, store_coords, stereo_id):
-    for item in res:   # mol_name, hash, coords, fp
+    for item in res:   # mol_name, hash, coords, fp, pharm_obj
         if stereo_id:
             mol_name, mol_stereo_id = item[0].rsplit("_", 1)
         else:
@@ -49,6 +53,8 @@ def insert_res_db(cur, res, store_coords, stereo_id):
         data = [mol_name, mol_stereo_id]
         if item[1] is not None:
             data.append(item[1])
+        if item[4] is not None:
+            data.append(item[4])
         if item[3] is not None:
             data.append(item[3])
         cur.execute("INSERT INTO conformers VALUES(NULL, %s)" % ','.join(['?'] * len(data)), data)
@@ -104,20 +110,22 @@ def process_mol(mol, mol_name, smarts, bin_step, store_coords, multiconf, tolera
         output = []
         for p in ps:
             coords = p.get_feature_coords() if store_coords else None
-            hash = p.get_signature_md5(tol=tolerance) if not nohash else None
+            hash_md5 = p.get_signature_md5(tol=tolerance) if not nohash else None
+            pharm_obj = pickle.dumps(p) if not nohash else None
             fp_bin = marshal.dumps(p.get_fp()) if fp else None
-            output.append((mol_name, hash, coords, fp_bin))
+            output.append((mol_name, hash_md5, coords, fp_bin, pharm_obj))
         return output
     else:
-        p = Pharmacophore(bin_step)
+        p = Pharmacophore(bin_step, cached=True)
         if 'process_factory' in globals():
             p.load_from_feature_factory(mol, process_factory)
         elif smarts:
             p.load_from_smarts(mol, smarts)
         coords = p.get_feature_coords() if store_coords else None
-        hash = p.get_signature_md5(tol=tolerance) if not nohash else None
+        hash_md5 = p.get_signature_md5(tol=tolerance) if not nohash else None
+        pharm_obj = pickle.dumps(p) if not nohash else None
         fp_bin = marshal.dumps(p.get_fp()) if fp else None
-        return [(mol_name, hash, coords, fp_bin)]
+        return [(mol_name, hash_md5, coords, fp_bin, pharm_obj)]
 
 
 def pool_init(fdef_fname, bin_step):

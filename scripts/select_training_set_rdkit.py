@@ -45,14 +45,14 @@ def gen_cluster_subset_algButina(fps, cutoff):
     return cs  # returns tuple of tuples with sequential numbers of compounds in each cluster
 
 
-def cluster_stat(cs_index, len_act, clust_stat):
+def save_cluster_stat(cs_index, len_act, clust_stat):
     for i, cluster in enumerate(cs_index):
         i_act = 0
         for el in cluster:
             if el in range(0, len_act+1):
                i_act += 1
-        print('cluster №%i, cluster length %i, share of active %.2f' % (i, len(cluster), i_act/len(cluster)))
-        print(cluster, '\n')
+        #print('cluster №%i, cluster length %i, share of active %.2f' % (i, len(cluster), i_act/len(cluster)))
+        #print(cluster, '\n')
         clust_stat.write('cluster №%i, cluster length %i, share of active %.2f \n' % (i, len(cluster), i_act/len(cluster)))
 
 
@@ -80,7 +80,7 @@ def get_centroids(cs, d_msf, num):
     return tuple(sorted((d_msf['mol_name'][x[0]], d_msf['smiles'][x[0]]) for x in cs if len(x) >= num))
 
 
-def main(in_fname_act, in_fname_inact, fdef_fname, make_clust, fcfp4, clust_stat, treshold_clust, clust_size, max_nact_trainset):
+def main(in_fname_act, in_fname_inact, fdef_fname, make_clust, fcfp4, clust_stat, threshold_clust, clust_size, max_nact_trainset):
 
     save_dir = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_fname_act)))[0], 'trainset')
     if not os.path.isdir(save_dir):
@@ -92,10 +92,11 @@ def main(in_fname_act, in_fname_inact, fdef_fname, make_clust, fcfp4, clust_stat
     ftrainset = []
 
     if make_clust:
-        cs = gen_cluster_subset_algButina(d_msf_act['fingerprint'] + d_msf_inact['fingerprint'], treshold_clust)
-        cs_inact = gen_cluster_subset_algButina(d_msf_inact['fingerprint'], treshold_clust)
+        cs = gen_cluster_subset_algButina(d_msf_act['fingerprint'] + d_msf_inact['fingerprint'], threshold_clust)
+        cs_inact = gen_cluster_subset_algButina(d_msf_inact['fingerprint'], threshold_clust)
         inact_centroids = get_centroids(cs_inact, d_msf_inact, clust_size)  # tuple of tuples with mol names and their SMILES
-        cluster_stat(cs, len(d_msf_act['mol_name']), clust_stat)
+        if clust_stat:
+            save_cluster_stat(cs, len(d_msf_act['mol_name']), clust_stat)
         ts_full = diff_binding_mode(cs, d_msf_act['mol_name'] + d_msf_inact['mol_name'],
                                     d_msf_act['smiles'] + d_msf_inact['smiles'],
                                     len(d_msf_act['mol_name']), inact_centroids, max_nact_trainset)  # tuple of lists of two tuples of tuples
@@ -111,13 +112,13 @@ def main(in_fname_act, in_fname_inact, fdef_fname, make_clust, fcfp4, clust_stat
         ftrainset.append([os.path.join(save_dir, 'active_centroid.txt'),
                           os.path.join(save_dir, 'inactive_centroid.txt')])
         # process actives
-        cs = gen_cluster_subset_algButina(d_msf_act['fingerprint'], treshold_clust)
+        cs = gen_cluster_subset_algButina(d_msf_act['fingerprint'], threshold_clust)
         centroids = get_centroids(cs, d_msf_act, clust_size)
         with open(os.path.join(save_dir, 'active_centroid.txt'), 'wt') as f:
             f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in centroids))
 
         # process inactives
-        cs = gen_cluster_subset_algButina(d_msf_inact['fingerprint'], treshold_clust)
+        cs = gen_cluster_subset_algButina(d_msf_inact['fingerprint'], threshold_clust)
         centroids = get_centroids(cs, d_msf_inact, clust_size)
         with open(os.path.join(save_dir, 'inactive_centroid.txt'), 'wt') as f:
             f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in centroids))
@@ -140,10 +141,9 @@ if __name__ == '__main__':
                         help='if set FCFP4 fingerprints will be used for compound selection, '
                              'otherwise pharmacophore fingerprints will be used based on feature '
                              'definitions provided by --rdkit_fdef argument.')
-    parser.add_argument('-s', '--cluster_stat',
-                        # default=os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], 'cluster_stat'), type = argparse.FileType('wt'),
-                        help='')
-    parser.add_argument('-t', '--treshold_clust', default=0.4,
+    parser.add_argument('-s', '--cluster_stat', default=None,
+                        help='if designate path to file than save cluster statistics')
+    parser.add_argument('-t', '--threshold_clust', default=0.4,
                         help='treshold for сlustering data by Butina algorithm')
     parser.add_argument('-clz', '--clust_size', default=5,
                         help='minimum cluster size from extract centroinds for training set')
@@ -158,7 +158,7 @@ if __name__ == '__main__':
         if o == "make_clust": make_clust = v
         if o == "fcfp4": fcfp4 = v
         if o == "cluster_stat": clust_stat = v
-        if o == "treshold_clust": treshold_clust = float(v)
+        if o == "threshold_clust": threshold_clust = float(v)
         if o == "clust_size": clust_size = int(v)
         if o == "max_act_ts": max_nact_trainset = int(v)
 
@@ -172,6 +172,6 @@ if __name__ == '__main__':
          make_clust=make_clust,
          fcfp4=fcfp4,
          clust_stat=clust_stat,
-         treshold_clust=treshold_clust, 
+         threshold_clust=threshold_clust,
          clust_size=clust_size,
          max_nact_trainset=max_nact_trainset)
