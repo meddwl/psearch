@@ -70,29 +70,31 @@ def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_f
     sys.stderr.write('prepare {} dataset ({}s)'.format(set_name, time.time() - start))
 
 
-def main(in_fname, act_threshold, inact_threshold, gen_tautomers,
+def main(in_fname, act_threshold, inact_threshold, label, gen_tautomers,
          nconf, energy, rms, tolerance, fdef_fname, ncpu):
 
-    comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname)), 'compounds')
+    comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname[0])), 'compounds_{}'.format(nconf))
     if not os.path.exists(comm_path):
         os.mkdir(comm_path)
 
-    mol_act = os.path.join(comm_path, 'active.smi')
-    mol_inact = os.path.join(comm_path, 'inactive.smi')
-
-    split.main(in_fname, mol_act, mol_inact, act_threshold, inact_threshold)
+    if len(in_fname) == 1:
+        mol_act = os.path.join(comm_path, 'active.smi')
+        mol_inact = os.path.join(comm_path, 'inactive.smi')
+        split.main(in_fname[0], mol_act, mol_inact, act_threshold, inact_threshold, label)
+    elif len(in_fname) == 2:
+        mol_act, mol_inact = in_fname
 
     list_act = [mol_act,
                 os.path.join(comm_path, 'active.sdf'),
                 os.path.join(comm_path, 'active_stereo.smi'),
                 os.path.join(comm_path, 'active_conf.sdf'),
-                os.path.join(os.path.split(comm_path)[0], 'active.db')]
+                os.path.join(comm_path, 'active.db')]
 
     list_inact = [mol_inact,
                   os.path.join(comm_path, 'inactive.sdf'),
                   os.path.join(comm_path, 'inactive_stereo.smi'),
                   os.path.join(comm_path, 'inactive_conf.sdf'),
-                  os.path.join(os.path.split(comm_path)[0], 'inactive.db')]
+                  os.path.join(comm_path, 'inactive.db')]
 
     pa = Process(target=common, args=(list_act, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_fname, 'active'))
     pi = Process(target=common, args=(list_inact, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_fname, 'inactive'))
@@ -104,8 +106,10 @@ def main(in_fname, act_threshold, inact_threshold, gen_tautomers,
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='', formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--in', metavar='input.smi', required=True,
-                        help='input file or files.')
+    parser.add_argument('-i', '--in', metavar='input.smi', required=True, nargs='+', type=str,
+                        help='input smi file or two files, active and inactive.'
+                             'If there are two input files, the first file with active molecules, '
+                             'the second file with inactive molecules.')
     parser.add_argument('-u', '--act_threshold', metavar='act_threshold', default=8.0,
                         help='specify threshold used to determine active compounds.'
                              'Compounds having activity higher or equal to the given'
@@ -114,7 +118,11 @@ if __name__ == '__main__':
                         help='specify threshold used to determine inactive compounds.'
                              'Compounds having activity less or equal to the given'
                              'value will be recognized as inactive.')
-    parser.add_argument('-t', '--gen_tautomers', action='store_true', default=False,
+    parser.add_argument('--label', action='store_true', default=False,
+                        help='a criterion of molecules separation. '
+                             'If True - absolute separation of molecules into active and inactive.'
+                             'If False - separation of molecules into active and inactive by value')
+    parser.add_argument('-g', '--gen_tautomers', action='store_true', default=False,
                         help='if True tautomers at pH 7.4 are generated using Chemaxon.')
     parser.add_argument('-n', '--nconf', metavar='conf_number', default=100,
                         help='number of generated conformers.')
@@ -138,6 +146,7 @@ if __name__ == '__main__':
         if o == "in": in_fname = v
         if o == "act_threshold": act_threshold = float(v)
         if o == "inact_threshold": inact_threshold = float(v)
+        if o == "label": label = v
         if o == "gen_tautomers": gen_tautomers = v
         if o == "nconf": nconf = int(v)
         if o == "energy_cutoff": energy = float(v)
@@ -146,9 +155,13 @@ if __name__ == '__main__':
         if o == "fdef_fname": fdef_fname = v
         if o == "ncpu": ncpu = int(v)
 
+    if fdef_fname is None:
+        fdef_fname = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pmapper', 'smarts_features.fdef')
+
     main(in_fname=in_fname,
          act_threshold=act_threshold,
          inact_threshold=inact_threshold,
+         label=label,
          gen_tautomers=gen_tautomers,
          nconf=nconf,
          energy=energy,
