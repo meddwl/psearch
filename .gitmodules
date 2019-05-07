@@ -1,3 +1,4 @@
 [submodule "pmapper"]
 	path = pmapper
 	url = https://github.com/DrrDom/pmapper.git
+	ignore = dirty
