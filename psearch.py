@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
 import os
-import time
 import argparse
+import time
 
 from scripts import gen_pharm_models
 from scripts import select_training_set_rdkit
 from scripts import screen_db
 import external_statistics
-
 
 def calc(mol_act, mol_inact, in_adb, in_indb, files_at, files_int, path_pma, path_screen, tol, lower):
 

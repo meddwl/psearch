@@ -125,9 +125,9 @@ def main(in_fname_act, in_fname_inact, output,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='select compounds for training set',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--in_act', metavar='input_active.smi', required=True,
+    parser.add_argument('-a', '--in_act', metavar='input_active.smi', required=True,
                         help='input SMILES file name with active compounds.')
-    parser.add_argument('--in_inact', metavar='input_inactive.smi', required=True,
+    parser.add_argument('-i', '--in_inact', metavar='input_inactive.smi', required=True,
                         help='input SMILES file name with inactive compounds.')
     parser.add_argument('-o', '--output', metavar='output/path', default=None,
                         help='output path. The folder where will be saved a training set.')
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                         help='treshold for сlustering data by Butina algorithm')
     parser.add_argument('-clz', '--clust_size', default=5,
                         help='minimum cluster size from extract centroinds for training set')
-    parser.add_argument('-ma', '--max_act_ts', default=5,
+    parser.add_argument('-m', '--max_act_ts', default=5,
                         help='maximum number of active compounds for training set')
 
     args = vars(parser.parse_args())
