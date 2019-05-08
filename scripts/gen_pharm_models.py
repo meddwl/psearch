@@ -148,7 +148,7 @@ def calc_internal_stat(df_act, df_inact, act_trainset, clust_strategy):
 
 
 # return None
-def save_models_pma(df_ph, df_sub_act, out_pma, cluster_num, num_ids):
+def save_models_pma(df_ph, df_sub_act, path_pma, cluster_num, num_ids):
     time_start = time.time()
     df_sub_act = df_sub_act.drop_duplicates(subset=['hash'])
     df_ph = pd.merge(df_sub_act, df_ph, on=['mol_name', 'conf_id'], how='inner')
@@ -156,11 +156,11 @@ def save_models_pma(df_ph, df_sub_act, out_pma, cluster_num, num_ids):
     for line in range(df_ph.shape[0]):
         pharm, ids = df_ph['pharm'].iloc[line], df_ph['feature_ids'].iloc[line]
         if pharm:
-            pharm.save_to_pma(os.path.join(out_pma, '{}_pharm{}_{}.pma'.format(cluster_num, num_ids, i)),
+            pharm.save_to_pma(os.path.join(path_pma, '{}_pharm{}_{}.pma'.format(cluster_num, num_ids, i)),
                               tuple(map(int, ids.split(','))))
             i += 1
     sys.stderr.write('{}: extract {} models passed ({}s)\n\n'.format(
-        os.path.split(out_pma)[1], i, round(time.time() - time_start, 3)))
+        os.path.split(path_pma)[1], i, round(time.time() - time_start, 3)))
 
 
 def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lower, save_files=False):
@@ -216,11 +216,10 @@ def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lowe
         df_sub_act, df_sub_inact, df_ph_act, df_ph_inact = _keep_best_models(
             df, df_sub_act, df_sub_inact, df_ph_act, df_ph_inact, save_files)
 
-    if not out_pma:
-        out_pma = os.path.join(os.path.split(os.path.dirname(in_adb))[0], 'models', '{}_ph{}'.format(cluster_num, lower))
-    _make_dir(out_pma)
-    save_models_pma(df_ph_act, df_sub_act_0, out_pma, cluster_num, lower)
-    return out_pma, lower
+    path_pma = os.path.join(out_pma, '{}_ph{}'.format(cluster_num, lower))
+    _make_dir(path_pma)
+    save_models_pma(df_ph_act, df_sub_act_0, path_pma, cluster_num, lower)
+    return path_pma, lower
 
 
 if __name__ == '__main__':
@@ -255,6 +254,9 @@ if __name__ == '__main__':
         if o == "output_path": out_pma = v
         if o == "tolerance": tolerance = float(v)
         if o == "lower": lower = int(v)
+
+    if not out_pma:
+        out_pma = os.path.join(os.path.split(os.path.dirname(adb))[0], 'models')
 
     main(in_adb=adb,
          in_indb=indb,
