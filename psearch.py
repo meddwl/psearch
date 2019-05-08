@@ -58,10 +58,14 @@ def calc(mol_act, mol_inact, in_adb, in_indb, files_at, files_int, tol, lower, p
 def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_pma,
          tol, lower, fdef_fname, threshold_clust, clust_size, max_nact_trainset):
 
+    output_ts = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_adb)))[0], 'trainset')
+    if not os.path.isdir(output_ts):
+        os.makedirs(output_ts)
 
     if 1 in mode_train_set:
         list_ts_1 = select_training_set_rdkit.main(in_fname_act=mol_act,
                                                    in_fname_inact=mol_inact,
+                                                   output=output_ts,
                                                    fdef_fname=fdef_fname,
                                                    make_clust=False,
                                                    fcfp4=fcfp4,
@@ -75,6 +79,7 @@ def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_pma,
     if 2 in mode_train_set:
         list_ts_2 = select_training_set_rdkit.main(in_fname_act=mol_act,
                                                    in_fname_inact=mol_inact,
+                                                   output=output_ts,
                                                    fdef_fname=fdef_fname,
                                                    make_clust=True,
                                                    fcfp4=fcfp4,

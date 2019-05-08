@@ -22,7 +22,7 @@ def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_scree
     all_inactive_mol = len(open(mol_inact).readlines())
     # ts_inactive_mol = len(open(ts_inact).readlines())
 
-    model = os.path.basename(in_pma)
+    model = os.path.basename(in_pma).split('.')[0]
     with open(in_pma) as fpma:
         d = json.loads(fpma.readline().strip())
         labels = ''.join(i[0] for i in d['feature_coords'])
@@ -121,8 +121,6 @@ if __name__ == '__main__':
                         help='.smi file with active molecules.')
     parser.add_argument('-mol_inact', '--input_inactive_mol', metavar='inactive.smi', required=True,
                         help='.smi file with inactive molecules.')
-    # parser.add_argument('-idb', '--in_active_database', metavar='active.db', required=True,
-    #                     help='input DB SQLite file with activity moleculs')
     parser.add_argument('-ts_act', '--trainset_active_mol', metavar='active.smi', required=True,
                         help='txt file with active molecules from training set.')
     parser.add_argument('-ts_inact', '--trainset_inactive_mol', metavar='inactive.smi', required=True,
@@ -139,7 +137,6 @@ if __name__ == '__main__':
     for o, v in args.items():
         if o == "input_active_mol": mol_act = v
         if o == "input_inactive_mol": mol_inact = v
-        # if o == "in_active_database": in_adb = v
         if o == "trainset_active_mol": ts_act = v
         if o == "trainset_inactive_mol": ts_inact = v
         if o == "path_to_pma": path_to_pma = v
@@ -148,7 +145,6 @@ if __name__ == '__main__':
 
     if out_external is None:
         out_external = os.path.join(os.path.split(os.path.dirname(mol_act))[0], 'result.txt')
-
 
     main(mol_act, mol_inact, ts_act, ts_inact, path_to_pma, path_to_screen, out_external)
     

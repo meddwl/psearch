@@ -80,11 +80,7 @@ def get_centroids(cs, d_msf, num):
     return tuple(sorted((d_msf['mol_name'][x[0]], d_msf['smiles'][x[0]]) for x in cs if len(x) >= num))
 
 
-def main(in_fname_act, in_fname_inact, fdef_fname, make_clust, fcfp4, clust_stat, threshold_clust, clust_size, max_nact_trainset):
-
-    save_dir = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_fname_act)))[0], 'trainset')
-    if not os.path.isdir(save_dir):
-        os.makedirs(save_dir)
+def main(in_fname_act, in_fname_inact, output, fdef_fname, make_clust, fcfp4, clust_stat, threshold_clust, clust_size, max_nact_trainset):
 
     d_msf_act = read_file(in_fname_act, fcfp4, fdef_fname)  # defaltdict(list) keys: mol_name, SMILES, fingerprint
     d_msf_inact = read_file(in_fname_inact, fcfp4, fdef_fname)  # defaltdict(list) keys: mol_name, SMILES, fingerprint
@@ -101,26 +97,26 @@ def main(in_fname_act, in_fname_inact, fdef_fname, make_clust, fcfp4, clust_stat
                                     d_msf_act['smiles'] + d_msf_inact['smiles'],
                                     len(d_msf_act['mol_name']), inact_centroids, max_nact_trainset)  # tuple of lists of two tuples of tuples
         for i, act_ts, inact_ts in ts_full:
-            ftrainset.append([os.path.join(save_dir, 'active_tr%i.txt' % (i)),
-                              os.path.join(save_dir, 'inactive_tr%i.txt' % (i))])
-            with open(os.path.join(save_dir, 'active_tr%i.txt' % (i)), 'wt') as f:
+            ftrainset.append([os.path.join(output, 'active_tr%i.txt' % (i)),
+                              os.path.join(output, 'inactive_tr%i.txt' % (i))])
+            with open(os.path.join(output, 'active_tr%i.txt' % (i)), 'wt') as f:
                 f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in act_ts))
-            with open(os.path.join(save_dir, 'inactive_tr%i.txt' % (i)), 'wt') as f:
+            with open(os.path.join(output, 'inactive_tr%i.txt' % (i)), 'wt') as f:
                 f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in inact_ts))
 
     else:
-        ftrainset.append([os.path.join(save_dir, 'active_centroid.txt'),
-                          os.path.join(save_dir, 'inactive_centroid.txt')])
+        ftrainset.append([os.path.join(output, 'active_centroid.txt'),
+                          os.path.join(output, 'inactive_centroid.txt')])
         # process actives
         cs = gen_cluster_subset_algButina(d_msf_act['fingerprint'], threshold_clust)
         centroids = get_centroids(cs, d_msf_act, clust_size)
-        with open(os.path.join(save_dir, 'active_centroid.txt'), 'wt') as f:
+        with open(os.path.join(output, 'active_centroid.txt'), 'wt') as f:
             f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in centroids))
 
         # process inactives
         cs = gen_cluster_subset_algButina(d_msf_inact['fingerprint'], threshold_clust)
         centroids = get_centroids(cs, d_msf_inact, clust_size)
-        with open(os.path.join(save_dir, 'inactive_centroid.txt'), 'wt') as f:
+        with open(os.path.join(output, 'inactive_centroid.txt'), 'wt') as f:
             f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in centroids))
     return ftrainset
 
@@ -128,10 +124,12 @@ def main(in_fname_act, in_fname_inact, fdef_fname, make_clust, fcfp4, clust_stat
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='select compounds for training set',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--in_act', metavar='input_active.smi', required=True,
+    parser.add_argument('-a', '--in_act', metavar='input_active.smi', required=True,
                         help='input SMILES file name with active compounds.')
-    parser.add_argument('--in_inact', metavar='input_inactive.smi', required=True,
+    parser.add_argument('-i', '--in_inact', metavar='input_inactive.smi', required=True,
                         help='input SMILES file name with inactive compounds.')
+    parser.add_argument('-o', '--output_path', metavar='output/path', 
+                        help='output path to training sets')
     parser.add_argument('-clust', '--make_clust', action='store_true', default=False,
                         help='if set training sets will be created for separate clusters, '
                              'otherwise only one training set will be created.')
@@ -147,13 +145,14 @@ if __name__ == '__main__':
                         help='treshold for сlustering data by Butina algorithm')
     parser.add_argument('-clz', '--clust_size', default=5,
                         help='minimum cluster size from extract centroinds for training set')
-    parser.add_argument('-ma', '--max_act_ts', default=5,
+    parser.add_argument('-m', '--max_act_ts', default=5,
                         help='maximum number of active compounds for training set')
 
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "in_act": in_fname_act = v
         if o == "in_inact": in_fname_inact = v
+        if o == "output_path": output_path = v
         if o == "rdkit_fdef": fdef_fname = v
         if o == "make_clust": make_clust = v
         if o == "fcfp4": fcfp4 = v
@@ -166,8 +165,14 @@ if __name__ == '__main__':
         sys.stderr.write('At least one argument fcfp4 or rdkit_fdef should be set to a non default value.')
         exit()
 
+    if not output_path:
+        output_path = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_fname_act)))[0], 'trainset')
+        if not os.path.isdir(output_path):
+            os.makedirs(output_path)
+
     main(in_fname_act=in_fname_act,
          in_fname_inact=in_fname_inact,
+         output=output_path,
          fdef_fname=fdef_fname,
          make_clust=make_clust,
          fcfp4=fcfp4,
