@@ -58,7 +58,7 @@ def get_items(mol_act, mol_inact, in_adb, in_indb, list_ts, path_pma, path_scree
 
 
 def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_ts, path_pma, path_screen,
-         tol, lower, fdef_fname, threshold_clust, clust_size, max_nact_trainset):
+         tol, lower, fdef_fname, threshold_clust, clust_size, max_nact_trainset, ncpu):
 
     p = Pool(ncpu)
 
@@ -151,6 +151,8 @@ if __name__ == '__main__':
     parser.add_argument('--fdef', metavar='smarts.fdef',
                         default=os.path.join(os.getcwd(), 'pmapper/smarts_features.fdef'),
                         help='fdef-file with pharmacophore feature definition.')
+    parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
+                        help='number of cpus to use for calculation.')
 
     args = vars(parser.parse_args())
     for o, v in args.items():
@@ -171,6 +173,7 @@ if __name__ == '__main__':
         if o == "clust_size": clust_size = int(v)
         if o == "max_act_ts": max_nact_trainset = int(v)
         if o == "fdef": fdef_fname = v
+        if o == "ncpu": ncpu = int(v)
 
     # creating paths for training sets, pma files and screening files
     if not path_ts:
@@ -209,4 +212,5 @@ if __name__ == '__main__':
          threshold_clust=threshold_clust,
          clust_size=clust_size,
          max_nact_trainset=max_nact_trainset,
-         fdef_fname=fdef_fname)
+         fdef_fname=fdef_fname,
+         ncpu=ncpu)
