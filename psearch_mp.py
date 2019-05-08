@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 
 import os
-import argparse
 import time
+import argparse
+from multiprocessing import Pool
 
 from scripts import gen_pharm_models
 from scripts import select_training_set_rdkit
 from scripts import screen_db
 import external_statistics
 
-def calc(mol_act, mol_inact, in_adb, in_indb, files_at, files_int, path_pma, path_screen, tol, lower):
+
+def calc(mol_act, mol_inact, in_adb, in_indb, files_ats, files_ints, path_pma, path_screen, tol, lower):
 
     if len(os.listdir(path_pma)) == 0:
         path_pma, ids = gen_pharm_models.main(in_adb=in_adb,
                                               in_indb=in_indb,
-                                              act_trainset=files_at,
-                                              inact_trainset=files_int,
+                                              act_trainset=files_ats,
+                                              inact_trainset=files_ints,
                                               out_pma=path_pma,
                                               tolerance=tol,
                                               lower=lower)
@@ -27,7 +29,7 @@ def calc(mol_act, mol_inact, in_adb, in_indb, files_at, files_int, path_pma, pat
     if len(os.listdir(path_pma)) != 0:
         start = time.time()
         path_screen = os.path.join(path_screen,
-                                   '{}_ph{}'.format(os.path.basename(files_at).split('.')[0].split('_')[1], ids))
+                                   '{}_ph{}'.format(os.path.basename(files_ats).split('.')[0].split('_')[1], ids))
         if not os.path.exists(path_screen):
             os.mkdir(path_screen)
 
@@ -40,15 +42,25 @@ def calc(mol_act, mol_inact, in_adb, in_indb, files_at, files_int, path_pma, pat
 
         external_statistics.main(mol_act=mol_act,
                                  mol_inact=mol_inact,
-                                 ts_act=files_at,
-                                 ts_inact=files_int,
+                                 ts_act=files_ats,
+                                 ts_inact=files_ints,
                                  path_to_pma=path_pma,
                                  path_to_screen=path_screen,
                                  out_external=out_external_stat)
 
+def calc_mp(items):
+    return calc(*items)
+    
+    
+def get_items(mol_act, mol_inact, in_adb, in_indb, list_ts, path_pma, path_screen, tol, lower):
+    for file_ats, file_ints in list_ts:
+        yield mol_act, mol_inact, in_adb, in_indb, file_ats, file_ints, path_pma, path_screen, tol, lower
+
 
 def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_ts, path_pma, path_screen,
          tol, lower, fdef_fname, threshold_clust, clust_size, max_nact_trainset):
+
+    p = Pool(ncpu)
 
     if type(path_ts) is str:
         if 1 in mode_train_set:
@@ -85,12 +97,10 @@ def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_ts, path_pma,
     else:
         list_ts = path_ts
 
-    for files_at, files_int in list_ts:
-        calc(mol_act, mol_inact,
-             in_adb, in_indb,
-             files_at, files_int,
-             path_pma, path_screen,
-             tol, lower)
+    for _ in p.imap(calc_mp, get_items(mol_act, mol_inact,
+                                       in_adb, in_indb,
+                                       list_ts, path_pma, path_screen,
+                                       tol, lower)):
         continue
 
 
