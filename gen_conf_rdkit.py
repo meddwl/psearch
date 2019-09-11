@@ -15,7 +15,7 @@ from itertools import combinations
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from multiprocessing import Pool, cpu_count
-from scripts.read_input import read_input
+from read_input import read_input
 
 
 def prep_input(fname, id_field_name, nconf, energy, rms, seed):

@@ -13,7 +13,7 @@ from rdkit.Chem import AllChem
 from itertools import product
 from copy import deepcopy
 from multiprocessing import Pool, cpu_count
-from scripts.read_input import read_input
+from read_input import read_input
 
 
 def prep_input(fname, id_field_name, tetrahedral, double_bond, max_undef):

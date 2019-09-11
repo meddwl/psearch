@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import sqlite3 as sql
 from collections import defaultdict
-from pmapper.pharmacophore import Pharmacophore
+from pharmacophore import Pharmacophore
 
 
 def _make_dir(new_path):
@@ -69,6 +69,9 @@ def gen_models(def_generator, df_0):
         dct['conf_id'].append(conf_id)
         dct['feature_ids'].append(','.join(map(str, labels)))
     df = pd.DataFrame(dct)
+    if df.empty:
+        print(df_0[:2])
+        return df_0, df
     count_df = df.drop_duplicates(subset=['mol_name', 'hash'])
     count_df = count_df.groupby(['hash'], sort=True).size().reset_index(name='count')
     df = pd.merge(df, count_df, on='hash', how='right')
@@ -78,7 +81,7 @@ def gen_models(def_generator, df_0):
 
 # return DataFrame of pharmacophore representation molecules: columns=['mol_name', 'conf_id', 'pharm']
 def load_pharmacophores(in_db, in_training_set):
-    mol_names = [name.strip().split('\t')[0] for name in open(in_training_set).readlines()]
+    mol_names = [name.strip().split('\t')[1] for name in open(in_training_set).readlines()]
     confs_pharm = defaultdict(list)
     with sql.connect(in_db) as con:
         cur = con.cursor()
@@ -186,7 +189,7 @@ def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lowe
                            df_sub_inact,
                            act_trainset, clust_strategy)
     if df.empty:
-        return 'no 4-points pharmacophore models above thresholds', 0
+        return 'no {}-points pharmacophore models above thresholds'.format(lower), 0
 
     if save_files:
         path_files = os.path.join(os.path.split(os.path.dirname(in_adb))[0], 'files')
@@ -199,6 +202,8 @@ def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lowe
 
     while True:
         lower += 1
+
+        print(lower, df_sub_act[:3], sep='\n')
 
         df_sub_act_0, df_sub_act = gen_models(_plus_one_feature(df_ph_act, df_sub_act[['conf_id', 'feature_ids']]), df_sub_act)
         if not df_sub_inact.empty:

@@ -16,9 +16,8 @@ from rdkit import Chem
 from rdkit.Chem import ChemicalFeatures
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
 from multiprocessing import cpu_count, Pool
-from scripts.read_input import read_input
-#sys.path.insert(1, os.path.join(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0], 'pmapper'))
-from pmapper.pharmacophore import Pharmacophore, read_smarts_feature_file, load_multi_conf_mol
+from read_input import read_input
+from pharmacophore import Pharmacophore, read_smarts_feature_file, load_multi_conf_mol
 
 
 def create_tables(cursor, bin_step, smarts, store_coords, fp, nohash):

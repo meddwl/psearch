@@ -6,34 +6,15 @@
 
 import os
 import sys
-import time
 import argparse
 import marshal
 import sqlite3 as lite
 from collections import defaultdict
-from pmapper.pharmacophore import Pharmacophore
+from pharmacophore import Pharmacophore
 
 
 def compare_fp(query_fp, fp):
     return (query_fp & fp) == query_fp
-
-
-def load_query(path_query):
-    q = Pharmacophore()
-    q.load_from_pma(path_query)
-    q_fp = q.get_fp()
-    return q, q_fp
-
-
-def check_bin_steps(cur, q):
-    cur.execute("SELECT bin_step FROM settings")
-    db_bin_step = cur.fetchone()[0]
-    # check bin steps
-    if q.get_bin_step() != db_bin_step:
-        sys.stderr.write('Model has a different bin step from compounds in database. '
-                         'It would be skipped.\n')
-        raise Exception('Incompatible bin step')
-    return db_bin_step
 
 
 def load_filtered_confs(cur, q_fp):
@@ -73,16 +54,25 @@ def main(dbs_fname, path_pma, path_screen):
                 os.path.basename(in_db).split('.')[0], query_fname.split('.')[0]))
             
             with open(out_fname, 'w') as out_f:
-                q, q_fp = load_query(os.path.join(path_pma, query_fname))
+                q = Pharmacophore(cached=True)
+                q.load_from_pma(os.path.join(path_pma, query_fname))
+                q_fp = q.get_fp()
     
                 conn = lite.connect(in_db)
                 cur = conn.cursor()
     
-                db_bin_step = check_bin_steps(cur, q)
+                cur.execute("SELECT bin_step FROM settings")
+                db_bin_step = cur.fetchone()[0]
+                # check bin steps
+                if q.get_bin_step() != db_bin_step:
+                    sys.stderr.write('Model has a different bin step from compounds in database. '
+                                     'It would be skipped.\n')
+                    raise Exception('Incompatible bin step')
+
                 for mol_name, conf_ids in load_filtered_confs(cur, q_fp):
                     if conf_ids:
                         for conf_id, feature_coords in load_pharmacophores(cur, conf_ids).items():
-                            p = Pharmacophore(bin_step=db_bin_step)
+                            p = Pharmacophore(bin_step=db_bin_step, cached=True)
                             p.load_from_feature_coords(feature_coords)
                             res = p.fit_model(q)
                             if res:

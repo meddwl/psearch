@@ -98,27 +98,27 @@ def main(in_fname_act, in_fname_inact, output,
                                     d_msf_act['smiles'] + d_msf_inact['smiles'],
                                     len(d_msf_act['mol_name']), inact_centroids, max_nact_trainset)  # tuple of lists of two tuples of tuples
         for i, act_ts, inact_ts in ts_full:
-            ftrainset.append([os.path.join(output, 'active_tr%i.txt' % (i)),
-                              os.path.join(output, 'inactive_tr%i.txt' % (i))])
-            with open(os.path.join(output, 'active_tr%i.txt' % (i)), 'wt') as f:
-                f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in act_ts))
-            with open(os.path.join(output, 'inactive_tr%i.txt' % (i)), 'wt') as f:
-                f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in inact_ts))
+            ftrainset.append([os.path.join(output, 'active_tr%i.csv' % (i)),
+                              os.path.join(output, 'inactive_tr%i.csv' % (i))])
+            with open(os.path.join(output, 'active_tr%i.csv' % (i)), 'wt') as f:
+                f.write('\n'.join('{}\t{}'.format(smiles, mol_name) for mol_name, smiles in act_ts))
+            with open(os.path.join(output, 'inactive_tr%i.csv' % (i)), 'wt') as f:
+                f.write('\n'.join('{}\t{}'.format(smiles, mol_name) for mol_name, smiles in inact_ts))
 
     else:
-        ftrainset.append([os.path.join(output, 'active_centroid.txt'),
-                          os.path.join(output, 'inactive_centroid.txt')])
+        ftrainset.append([os.path.join(output, 'active_centroid.csv'),
+                          os.path.join(output, 'inactive_centroid.csv')])
         # process actives
         cs = gen_cluster_subset_algButina(d_msf_act['fingerprint'], threshold_clust)
         centroids = get_centroids(cs, d_msf_act, clust_size)
-        with open(os.path.join(output, 'active_centroid.txt'), 'wt') as f:
-            f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in centroids))
+        with open(os.path.join(output, 'active_centroid.csv'), 'wt') as f:
+            f.write('\n'.join('{}\t{}'.format(smiles, mol_name) for mol_name, smiles in centroids))
 
         # process inactives
         cs = gen_cluster_subset_algButina(d_msf_inact['fingerprint'], threshold_clust)
         centroids = get_centroids(cs, d_msf_inact, clust_size)
-        with open(os.path.join(output, 'inactive_centroid.txt'), 'wt') as f:
-            f.write('\n'.join('{}\t{}'.format(mol_name, smiles) for mol_name, smiles in centroids))
+        with open(os.path.join(output, 'inactive_centroid.csv'), 'wt') as f:
+            f.write('\n'.join('{}\t{}'.format(smiles, mol_name) for mol_name, smiles in centroids))
     return ftrainset
 
 

@@ -23,7 +23,7 @@ def generate_tautomers(input_fname, output_fname):
     pipe.wait()
 
 
-def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_fname, set_name):
+def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, set_name):
     start = time.time()
 
     if gen_tautomers:
@@ -54,7 +54,6 @@ def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_f
     create_db.main_params(out_fname=None,
                           dbout_fname=filenames[4],
                           smarts_features_fname=None,
-                          rdkit_factory=fdef_fname,
                           conformers_fname=filenames[3],
                           bin_step=1,
                           rewrite_db=True,
@@ -70,58 +69,49 @@ def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_f
     sys.stderr.write('prepare {} dataset ({}s)'.format(set_name, time.time() - start))
 
 
-def main(in_fname, act_threshold, inact_threshold, label, gen_tautomers,
-         nconf, energy, rms, tolerance, fdef_fname, ncpu):
+def main(in_fname, thresholds, vs, gen_tautomers,
+         nconf, energy, rms, tolerance, ncpu):
 
-    comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname[0])), 'compounds_{}'.format(nconf))
+    comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname[0])), 'compounds')
     if not os.path.exists(comm_path):
         os.mkdir(comm_path)
 
-    if len(in_fname) == 1:
+    if not vs and len(in_fname) == 1:
         mol_act = os.path.join(comm_path, 'active.smi')
         mol_inact = os.path.join(comm_path, 'inactive.smi')
-        split.main(in_fname[0], mol_act, mol_inact, act_threshold, inact_threshold, label)
-    elif len(in_fname) == 2:
-        mol_act, mol_inact = in_fname
+        split.main(in_fname[0], mol_act, mol_inact, thresholds)
+        in_fname = [mol_act, mol_inact]
 
-    list_act = [mol_act,
-                os.path.join(comm_path, 'active.sdf'),
-                os.path.join(comm_path, 'active_stereo.smi'),
-                os.path.join(comm_path, 'active_conf.sdf'),
-                os.path.join(comm_path, 'active.db')]
+    procs = []
+    for index, fname in enumerate(in_fname):
+        nickname = os.path.dirname(fname).split('.')[0]
+        list_ts = [in_fname[0],
+                   os.path.join(comm_path, '{}_taut.sdf'.format(nickname)),
+                   os.path.join(comm_path, '{}_stereo.smi'.format(nickname)),
+                   os.path.join(comm_path, '{}_conf.sdf'.format(nickname)),
+                   os.path.join(comm_path, '{}_set.db'.format(nickname))]
+        proc = Process(target=common, args=(list_ts, nconf, energy, rms, gen_tautomers, tolerance, ncpu, nickname))
+        procs.append(proc)
+        proc.start()
 
-    list_inact = [mol_inact,
-                  os.path.join(comm_path, 'inactive.sdf'),
-                  os.path.join(comm_path, 'inactive_stereo.smi'),
-                  os.path.join(comm_path, 'inactive_conf.sdf'),
-                  os.path.join(comm_path, 'inactive.db')]
-
-    pa = Process(target=common, args=(list_act, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_fname, 'active'))
-    pi = Process(target=common, args=(list_inact, nconf, energy, rms, gen_tautomers, tolerance, ncpu, fdef_fname, 'inactive'))
-    pa.start()
-    pi.start()
-    pa.join()
-    pi.join()
+    for proc in procs:
+        proc.join()
 
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='', formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--in', metavar='input.smi', required=True, nargs='+', type=str,
-                        help='input smi file or two files, active and inactive.'
-                             'If there are two input files, the first file with active molecules, '
-                             'the second file with inactive molecules.')
-    parser.add_argument('-u', '--act_threshold', metavar='act_threshold', default=8.0,
-                        help='specify threshold used to determine active compounds.'
+    parser.add_argument('-i', '--input', metavar='input.smi', nargs='+', type=str, required=True,
+                        help='input smi file or multiple files')
+    parser.add_argument('-t', '--thresholds', metavar='value1 value2', nargs='+', type=int, default=None,
+                        help='specify threshold used to determine inactive and active compounds.'
+                             'if thresholds are None that input dataset is classification.'
+                             'value will be recognized as active '
+                             'Compounds having activity below or equal to the givet '
+                             'first value will recognized as inactive.'
                              'Compounds having activity higher or equal to the given'
-                             'value will be recognized as active.')
-    parser.add_argument('-l', '--inact_threshold', metavar='inact_threshold', default=6.0,
-                        help='specify threshold used to determine inactive compounds.'
-                             'Compounds having activity less or equal to the given'
-                             'value will be recognized as inactive.')
-    parser.add_argument('--label', action='store_true', default=False,
-                        help='a criterion of molecules separation. '
-                             'If True - absolute separation of molecules into active and inactive.'
-                             'If False - separation of molecules into active and inactive by value')
+                             ' second value will be recognized as active.')
+    parser.add_argument('-vs', '--virtual_screening', action='store_true', default=False,
+                        help='if True data will prepare for virtual screening.')
     parser.add_argument('-g', '--gen_tautomers', action='store_true', default=False,
                         help='if True tautomers at pH 7.4 are generated using Chemaxon.')
     parser.add_argument('-n', '--nconf', metavar='conf_number', default=100,
@@ -135,37 +125,27 @@ if __name__ == '__main__':
                         help='tolerance volume for the calculation of the stereo sign. If the volume of the '
                              'tetrahedron created by four points less than tolerance then those points are considered '
                              'lying on the same plane (flat; stereo sign is 0).')
-    parser.add_argument('-f', '--fdef_fname', metavar='smarts.fdef', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pmapper', 'smarts_features.fdef'),
-                        help='fdef-file with pharmacophore feature definition.')
     parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
-                        help='number of cpus to use for processing of actives and inactives separately. '
-                             'Therefore therefore this number should not exceed max_cpu/2.')
+                        help='number of cpus to use for processing of actives and inactives separately. ')
 
     args = vars(parser.parse_args())
     for o, v in args.items():
-        if o == "in": in_fname = v
-        if o == "act_threshold": act_threshold = float(v)
-        if o == "inact_threshold": inact_threshold = float(v)
-        if o == "label": label = v
+        if o == "input": in_fname = v
+        if o == "thresholds": thresholds = v
+        if o == "virtual_screening": vs = v
         if o == "gen_tautomers": gen_tautomers = v
         if o == "nconf": nconf = int(v)
         if o == "energy_cutoff": energy = float(v)
         if o == "rms": rms = float(v) if v is not None else None
         if o == "tolerance": tolerance = float(v)
-        if o == "fdef_fname": fdef_fname = v
         if o == "ncpu": ncpu = int(v)
 
-    if fdef_fname is None:
-        fdef_fname = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pmapper', 'smarts_features.fdef')
-
     main(in_fname=in_fname,
-         act_threshold=act_threshold,
-         inact_threshold=inact_threshold,
-         label=label,
+         thresholds=thresholds,
+         vs=vs,
          gen_tautomers=gen_tautomers,
          nconf=nconf,
          energy=energy,
          rms=rms,
          tolerance=tolerance,
-         fdef_fname=fdef_fname,
          ncpu=ncpu)

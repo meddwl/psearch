@@ -9,10 +9,25 @@ import time
 import json
 import pandas as pd
 import argparse
+from pmapper.pharmacophore import Pharmacophore as P
+
+
+def max_edge(in_model):
+    model = os.path.abspath(in_model)
+    p = P()
+    p.load_from_pma(model)
+    coords = p.get_feature_coords()
+
+    edge = 0
+    for i, c1 in enumerate(coords):
+        for j, c2 in enumerate(coords[i + 1:]):
+            e = ((c1[1][0] - c2[1][0]) ** 2 + (c1[1][1] - c2[1][1]) ** 2 + (c1[1][2] - c2[1][2]) ** 2) ** (1/2)
+            if e > edge:
+                edge = e
+    return edge
 
 
 def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_screen, in_inact_screen):
-
     act_screen = []
     inact_screen = []
 
@@ -20,16 +35,17 @@ def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_scree
     ts_inactive_mol = []
     all_active_mol = len(open(mol_act).readlines())
     all_inactive_mol = len(open(mol_inact).readlines())
-    # ts_inactive_mol = len(open(ts_inact).readlines())
 
+    medge = max_edge(in_pma)
     model = os.path.basename(in_pma).split('.')[0]
     with open(in_pma) as fpma:
         d = json.loads(fpma.readline().strip())
         labels = ''.join(i[0] for i in d['feature_coords'])
+        num_uniq_features = len(set(tuple(feature[1]) for feature in d['feature_coords']))
 
     with open(ts_act) as f:
         for x in f:
-            ts_active_mol.append(x.strip().split('\t')[0])
+            ts_active_mol.append(x.strip().split('\t')[1])
         
     with open(in_act_screen) as fs:
         for column in fs:
@@ -39,7 +55,7 @@ def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_scree
 
     with open(ts_inact) as f:
         for x in f:
-            ts_inactive_mol.append(x.strip().split('\t')[0])
+            ts_inactive_mol.append(x.strip().split('\t')[1])
 
     with open(in_inact_screen) as fs:
         for column in fs:
@@ -74,6 +90,8 @@ def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_scree
                 round(f05, 3),
                 round(ba, 3),
                 round(ef, 3),
+                num_uniq_features,
+                medge,
                 labels]
     
     except ZeroDivisionError:
@@ -88,6 +106,8 @@ def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_scree
                 '-',
                 '-',
                 '-',
+                num_uniq_features,
+                medge,
                 labels]
 
 
@@ -95,7 +115,8 @@ def main(mol_act, mol_inact, ts_act, ts_inact, path_to_pma, path_to_screen, out_
     
     start_time = time.time()
 
-    df_result = pd.DataFrame(columns=['model', 'TP', 'FP', 'precision', 'FPR', 'recall', 'F1', 'F2', 'F05', 'BA', 'EF', 'features'])
+    df_result = pd.DataFrame(columns=['model', 'TP', 'FP', 'precision', 'FPR', 'recall',
+                                      'F1', 'F2', 'F05', 'BA', 'EF', 'num_uniq_F', 'max_edge', 'features'])
 
 
     for enum, in_pma in enumerate(sorted(os.listdir(path_to_pma))):
@@ -147,4 +168,3 @@ if __name__ == '__main__':
         out_external = os.path.join(os.path.split(os.path.dirname(mol_act))[0], 'result.txt')
 
     main(mol_act, mol_inact, ts_act, ts_inact, path_to_pma, path_to_screen, out_external)
-    

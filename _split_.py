@@ -12,7 +12,7 @@ import pandas as pd
 def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshold, label):
 
     if label:
-        df = pd.read_csv(in_fname, sep=',')
+        df = pd.read_csv(in_fname, sep='\t', header=None)
         df_act = df[df[2] == 'active']
         df_act.to_csv(out_act_fname, sep='\t', index=None, header=None)
         df_inact = df[df[2] == 'inactive']
