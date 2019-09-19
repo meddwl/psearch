@@ -111,6 +111,8 @@ def main(in_fname_act, in_fname_inact, output,
         # process actives
         cs = gen_cluster_subset_algButina(d_msf_act['fingerprint'], threshold_clust)
         centroids = get_centroids(cs, d_msf_act, clust_size)
+        if len(centroids) < clust_size:
+            return []
         with open(os.path.join(output, 'active_centroid.csv'), 'wt') as f:
             f.write('\n'.join('{}\t{}'.format(smiles, mol_name) for mol_name, smiles in centroids))
 

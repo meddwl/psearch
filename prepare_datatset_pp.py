@@ -12,8 +12,8 @@ from subprocess import Popen, PIPE
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from multiprocessing import Process
 
-from scripts import gen_stereo_rdkit, gen_conf_rdkit, split
-from scripts import create_db
+import gen_stereo_rdkit, gen_conf_rdkit, split
+import create_db
 
 
 def generate_tautomers(input_fname, output_fname):

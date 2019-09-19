@@ -23,9 +23,9 @@ def calc(mol_act, mol_inact, in_adb, in_indb, files_ats, files_ints, path_pma, p
                                               tolerance=tol,
                                               lower=lower)
         if lower == 0:
-            sys.stderr.write('Error: {}'.format(path_pma), files_ats, files_ints)
+            sys.stderr.write('Error: {}.\nFor {},\n{}\n\n'.format(path_pma, files_ats, files_ints))
         if not path_pma:
-            sys.stderr.write("Error: no folder with pma files", files_ats, files_ints)
+            sys.stderr.write("Error: no folder with pma files.\nFor {},\n{}\n\n".format(files_ats, files_ints))
 
     if lower != 0:
         start = time.time()
@@ -34,20 +34,29 @@ def calc(mol_act, mol_inact, in_adb, in_indb, files_ats, files_ints, path_pma, p
         if not os.path.exists(path_screen):
             os.mkdir(path_screen)
 
-        screen_db.main(dbs_fname=[in_adb, in_indb], path_pma=path_pma, path_screen=path_screen)
+        screen_act = os.path.join(path_screen, 'active')
+        if not os.path.exists(screen_act):
+            os.mkdir(screen_act)
+
+        screen_inact = os.path.join(path_screen, 'active')
+        if not os.path.exists(screen_inact):
+            os.mkdir(screen_inact)
+
+        screen_db.main(db_fname = in_adb, queries = path_pma, output = screen_act, input_sdf = None, ncpu = 1)
+        screen_db.main(db_fname = in_indb, queries = path_pma, output = screen_inact, input_sdf = None, ncpu = 1)
 
         print('screen time : {}'.format(time.time() - start))
 
         out_external_stat = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_adb)))[0],
                                          'external_statistics_{}.txt'.format(os.path.split(path_pma)[1]))
 
-        external_statistics.main(mol_act=mol_act,
-                                 mol_inact=mol_inact,
-                                 ts_act=files_ats,
-                                 ts_inact=files_ints,
-                                 path_to_pma=path_pma,
-                                 path_to_screen=path_screen,
-                                 out_external=out_external_stat)
+        external_statistics.main(mol_act=mol_act, 
+                                 mol_inact = mol_inact, 
+                                 in_pma = path_pma, 
+                                 in_act_screen = screen_act, 
+                                 in_inact_screen = screen_inact, 
+                                 out_external = out_external_stat)
+
 
 def calc_mp(items):
     new = calc

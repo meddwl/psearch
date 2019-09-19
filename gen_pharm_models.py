@@ -42,8 +42,7 @@ def _keep_best_models(df, df_sub_act, df_sub_inact, df_ph_act, df_ph_inact, save
 
 # generator return mol_name, conf_id, hash, labels
 def _gen_quadruplets(df_ph, lower, tol):
-    for line in range(df_ph.shape[0]):
-        mol_name, conf_id, pharm = df_ph['mol_name'].iloc[line], df_ph['conf_id'].iloc[line], df_ph['pharm'].iloc[line]
+    for mol_name, conf_id, pharm in zip(df_ph['mol_name'], df_ph['conf_id'], df_ph['pharm']):
         if pharm:
             for hash, labels in pharm.iterate_pharm(lower, lower, tol):
                 yield mol_name, conf_id, hash, labels
@@ -51,8 +50,7 @@ def _gen_quadruplets(df_ph, lower, tol):
 
 # generator return mol_name, conf_id, hash, labels
 def _plus_one_feature(df_ph, df_sub):
-    for line in range(df_ph.shape[0]):
-        mol_name, conf_id, pharm = df_ph['mol_name'].iloc[line], df_ph['conf_id'].iloc[line], df_ph['pharm'].iloc[line]
+    for mol_name, conf_id, pharm in zip(df_ph['mol_name'], df_ph['conf_id'], df_ph['pharm']):
         list_ids = df_sub[df_sub['conf_id'] == conf_id]
         list_ids = [tuple(map(int, l.split(','))) for l in list_ids['feature_ids']]
         if pharm:
