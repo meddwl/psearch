@@ -23,7 +23,7 @@ def generate_tautomers(input_fname, output_fname):
     pipe.wait()
 
 
-def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, set_name):
+def common(filenames, nconf, energy, rms, rdkit_factory, gen_tautomers, tolerance, ncpu, set_name):
     start = time.time()
 
     if gen_tautomers:
@@ -53,7 +53,8 @@ def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, set_na
 
     create_db.main_params(out_fname=None,
                           dbout_fname=filenames[4],
-                          smarts_features_fname=None,
+                          smarts_features_fname=None, 
+                          rdkit_factory=rdkit_factory,
                           conformers_fname=filenames[3],
                           bin_step=1,
                           rewrite_db=True,
@@ -69,7 +70,7 @@ def common(filenames, nconf, energy, rms, gen_tautomers, tolerance, ncpu, set_na
     sys.stderr.write('prepare {} dataset ({}s)'.format(set_name, time.time() - start))
 
 
-def main(in_fname, thresholds, vs, gen_tautomers,
+def main(in_fname, thresholds, vs, rdkit_factory, gen_tautomers,
          nconf, energy, rms, tolerance, ncpu):
 
     comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname[0])), 'compounds')
@@ -79,18 +80,18 @@ def main(in_fname, thresholds, vs, gen_tautomers,
     if not vs and len(in_fname) == 1:
         mol_act = os.path.join(comm_path, 'active.smi')
         mol_inact = os.path.join(comm_path, 'inactive.smi')
-        split.main(in_fname[0], mol_act, mol_inact, thresholds)
+        split.main(in_fname[0], mol_act, mol_inact)
         in_fname = [mol_act, mol_inact]
 
     procs = []
     for index, fname in enumerate(in_fname):
         nickname = os.path.dirname(fname).split('.')[0]
-        list_ts = [in_fname[0],
+        list_ts = [in_fname,
                    os.path.join(comm_path, '{}_taut.sdf'.format(nickname)),
                    os.path.join(comm_path, '{}_stereo.smi'.format(nickname)),
                    os.path.join(comm_path, '{}_conf.sdf'.format(nickname)),
                    os.path.join(comm_path, '{}_set.db'.format(nickname))]
-        proc = Process(target=common, args=(list_ts, nconf, energy, rms, gen_tautomers, tolerance, ncpu, nickname))
+        proc = Process(target=common, args=(list_ts, nconf, energy, rms, rdkit_factory, gen_tautomers, tolerance, ncpu, nickname))
         procs.append(proc)
         proc.start()
 
@@ -110,6 +111,11 @@ if __name__ == '__main__':
                              'first value will recognized as inactive.'
                              'Compounds having activity higher or equal to the given'
                              ' second value will be recognized as active.')
+    parser.add_argument('--rdkit_factory', metavar='features.fdef', default=None, nargs='?',
+                        const=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef'),
+                        help='text file with definition of pharmacophore features in RDKit format. If file name is not '
+                             'specified the default file from the script dir will be used. This option has '
+                             'a priority over smarts_features.')
     parser.add_argument('-vs', '--virtual_screening', action='store_true', default=False,
                         help='if True data will prepare for virtual screening.')
     parser.add_argument('-g', '--gen_tautomers', action='store_true', default=False,
@@ -133,6 +139,7 @@ if __name__ == '__main__':
         if o == "input": in_fname = v
         if o == "thresholds": thresholds = v
         if o == "virtual_screening": vs = v
+        if o == "rdkit_factory": rdkit_factory = v
         if o == "gen_tautomers": gen_tautomers = v
         if o == "nconf": nconf = int(v)
         if o == "energy_cutoff": energy = float(v)
@@ -140,9 +147,14 @@ if __name__ == '__main__':
         if o == "tolerance": tolerance = float(v)
         if o == "ncpu": ncpu = int(v)
 
+    if rdkit_factory is None and smarts_features is None:
+        rdkit_factory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef')
+
+
     main(in_fname=in_fname,
          thresholds=thresholds,
          vs=vs,
+         rdkit_factory=rdkit_factory,
          gen_tautomers=gen_tautomers,
          nconf=nconf,
          energy=energy,

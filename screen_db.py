@@ -28,9 +28,8 @@ def load_confs(mol_name, db_fname):
     data = {conf_id: marshal.loads(fp) for conf_id, fp in data}   # {conf_id: fp_unpacked}
 
     # load feature coordinates of all conformers
-    sql = "SELECT conf_id, feature_label, x, y, z FROM feature_coords WHERE conf_id IN (%s)" % \
-          ','.join(['?'] * len(data))
-    cur.execute(sql, tuple(data.keys()))
+    sql = "SELECT conf_id, feature_label, x, y, z FROM feature_coords WHERE conf_id IN (%s)" % ','.join(map(str, data.keys()))
+    cur.execute(sql)
     res = cur.fetchall()    # (conf_id, feature_label, x, y, z)
     feature_coords = defaultdict(list)
     for r in res:

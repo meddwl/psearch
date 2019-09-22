@@ -9,7 +9,7 @@ import argparse
 import pandas as pd
 
 
-def main(in_fname, out_act_fname, out_inact_fname, act_threshold, inact_threshold, label):
+def main(in_fname, out_act_fname, out_inact_fname):
 
     df = pd.read_csv(in_fname, sep=',')
     df = df[['standardized_canonical_smiles', 'cmp', 'status']]

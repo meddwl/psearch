@@ -92,7 +92,7 @@ def get_external_stat(mol_act, mol_inact, in_pma, in_act_screen, in_inact_screen
                 labels]
 
 
-def main(mol_act, mol_inact, in_pma, in_act_screen, in_inact_screen, out_external):
+def main(mol_act, mol_inact, path_to_pma, in_act_screen, in_inact_screen, out_external):
     
     start_time = time.time()
 
@@ -101,7 +101,6 @@ def main(mol_act, mol_inact, in_pma, in_act_screen, in_inact_screen, out_externa
 
 
     for enum, in_pma in enumerate(os.listdir(path_to_pma)):
-        print(in_pma)
         ppath = (os.path.join(os.path.abspath(in_act_screen), '{}.txt'.format(in_pma.split('.')[0])),
                  os.path.join(os.path.abspath(in_inact_screen), '{}.txt'.format(in_pma.split('.')[0])),
                  os.path.abspath(os.path.join(path_to_pma, in_pma)))

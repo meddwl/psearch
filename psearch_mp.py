@@ -38,7 +38,7 @@ def calc(mol_act, mol_inact, in_adb, in_indb, files_ats, files_ints, path_pma, p
         if not os.path.exists(screen_act):
             os.mkdir(screen_act)
 
-        screen_inact = os.path.join(path_screen, 'active')
+        screen_inact = os.path.join(path_screen, 'inactive')
         if not os.path.exists(screen_inact):
             os.mkdir(screen_inact)
 
@@ -52,7 +52,7 @@ def calc(mol_act, mol_inact, in_adb, in_indb, files_ats, files_ints, path_pma, p
 
         external_statistics.main(mol_act=mol_act, 
                                  mol_inact = mol_inact, 
-                                 in_pma = path_pma, 
+                                 path_to_pma = path_pma, 
                                  in_act_screen = screen_act, 
                                  in_inact_screen = screen_inact, 
                                  out_external = out_external_stat)
