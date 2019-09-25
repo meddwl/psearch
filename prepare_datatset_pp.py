@@ -77,7 +77,7 @@ def main(in_fname, thresholds, vs, rdkit_factory, gen_tautomers,
     if not os.path.exists(comm_path):
         os.mkdir(comm_path)
 
-    if not vs and len(in_fname) == 1:
+    if len(in_fname) == 1:
         mol_act = os.path.join(comm_path, 'active.smi')
         mol_inact = os.path.join(comm_path, 'inactive.smi')
         split.main(in_fname[0], mol_act, mol_inact)
@@ -85,8 +85,8 @@ def main(in_fname, thresholds, vs, rdkit_factory, gen_tautomers,
 
     procs = []
     for index, fname in enumerate(in_fname):
-        nickname = os.path.dirname(fname).split('.')[0]
-        list_ts = [in_fname,
+        nickname = os.path.basename(fname).split('.')[0]
+        list_ts = [os.path.join(comm_path, '{}.smi'.format(nickname)),
                    os.path.join(comm_path, '{}_taut.sdf'.format(nickname)),
                    os.path.join(comm_path, '{}_stereo.smi'.format(nickname)),
                    os.path.join(comm_path, '{}_conf.sdf'.format(nickname)),
@@ -111,7 +111,7 @@ if __name__ == '__main__':
                              'first value will recognized as inactive.'
                              'Compounds having activity higher or equal to the given'
                              ' second value will be recognized as active.')
-    parser.add_argument('--rdkit_factory', metavar='features.fdef', default=None, nargs='?',
+    parser.add_argument('-f', '--rdkit_factory', metavar='features.fdef', default=None, nargs='?',
                         const=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef'),
                         help='text file with definition of pharmacophore features in RDKit format. If file name is not '
                              'specified the default file from the script dir will be used. This option has '

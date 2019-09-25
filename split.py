@@ -12,10 +12,11 @@ import pandas as pd
 def main(in_fname, out_act_fname, out_inact_fname):
 
     df = pd.read_csv(in_fname, sep=',')
+
     df = df[['standardized_canonical_smiles', 'cmp', 'status']]
-    df_act = df[df['status'] == 1]
+    df_act = df[df['status'] == 'active']
     df_act.to_csv(out_act_fname, sep='\t', index=None, header=None)
-    df_inact = df[df['status'] == 0]
+    df_inact = df[df['status'] == 'inactive']
     df_inact.to_csv(out_inact_fname, sep='\t', index=None, header=None)
 
     n_act = df_act.shape[0]
