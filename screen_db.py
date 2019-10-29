@@ -74,7 +74,10 @@ def read_models(queries, output, is_output_sdf):
     res = []
     for model_name, input_fname, output_fname in zip(model_names, input_fnames, output_fnames):
         p = Pharmacophore()
-        p.load_from_pma(input_fname)
+        if input_fname.endswith('.pma'):
+            p.load_from_pma(input_fname)
+        elif input_fname.endswith('.xyz'):
+            p.load_from_xyz(input_fname)
         fp = p.get_fp()
         res.append(Model(model_name, fp, p, output_fname))
 
