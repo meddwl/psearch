@@ -48,7 +48,7 @@ def common(filenames, nconf, energy, rms, rdkit_factory, gen_tautomers, toleranc
                                energy=energy,
                                rms=rms,
                                ncpu=ncpu,
-                               seed=42,
+                               seed=-1,
                                verbose=True)
 
     create_db.main_params(out_fname=None,
@@ -70,14 +70,26 @@ def common(filenames, nconf, energy, rms, rdkit_factory, gen_tautomers, toleranc
     sys.stderr.write('prepare {} dataset ({}s)'.format(set_name, time.time() - start))
 
 
-def main(in_fname, thresholds, vs, rdkit_factory, gen_tautomers,
-         nconf, energy, rms, tolerance, ncpu):
+def main(in_fname, split_dataset, rdkit_factory, gen_tautomers, nconf, energy, rms, tolerance, ncpu):
+    """
+    launches the entire cycle of data preprocessing: generation of stereoisomers, conformers and a database
+    :param in_fname: input .smi file containing information about SMILES, compounds id and its activity status
+    :param split_dataset: if True will splited input dasets into active and inactive sets else will not
+    :param rdkit_factory: text file with definition of pharmacophore features in RDKit format.
+    :param gen_tautomers: if True will generate tautomers for every compounds else will not
+    :param nconf: max number of generated conformers
+    :param energy: conformers with energy difference from the lowest one greater than the specified value will be discarded.
+    :param rms: only conformers with RMS higher then threshold will be kept.
+    :param tolerance: tolerance volume for the calculation of the stereo sign. (for more information read helper)
+    :param ncpu: number of cpus to use for processing of actives and inactives separately.
+    :return:
+    """
 
     comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname[0])), 'compounds')
     if not os.path.exists(comm_path):
         os.mkdir(comm_path)
 
-    if len(in_fname) == 1:
+    if split_dataset:
         mol_act = os.path.join(comm_path, 'active.smi')
         mol_inact = os.path.join(comm_path, 'inactive.smi')
         split.main(in_fname[0], mol_act, mol_inact)
@@ -86,12 +98,13 @@ def main(in_fname, thresholds, vs, rdkit_factory, gen_tautomers,
     procs = []
     for index, fname in enumerate(in_fname):
         nickname = os.path.basename(fname).split('.')[0]
-        list_ts = [os.path.join(comm_path, '{}.smi'.format(nickname)),
+        list_ts = [fname,
                    os.path.join(comm_path, '{}_taut.sdf'.format(nickname)),
                    os.path.join(comm_path, '{}_stereo.smi'.format(nickname)),
                    os.path.join(comm_path, '{}_conf.sdf'.format(nickname)),
-                   os.path.join(comm_path, '{}_set.db'.format(nickname))]
-        proc = Process(target=common, args=(list_ts, nconf, energy, rms, rdkit_factory, gen_tautomers, tolerance, ncpu, nickname))
+                   os.path.join(comm_path, '{}.db'.format(nickname))]
+        proc = Process(target=common, args=(list_ts, nconf, energy, rms, rdkit_factory,
+                                            gen_tautomers, tolerance, ncpu, nickname))
         procs.append(proc)
         proc.start()
 
@@ -103,21 +116,12 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='', formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--input', metavar='input.smi', nargs='+', type=str, required=True,
                         help='input smi file or multiple files')
-    parser.add_argument('-t', '--thresholds', metavar='value1 value2', nargs='+', type=int, default=None,
-                        help='specify threshold used to determine inactive and active compounds.'
-                             'if thresholds are None that input dataset is classification.'
-                             'value will be recognized as active '
-                             'Compounds having activity below or equal to the givet '
-                             'first value will recognized as inactive.'
-                             'Compounds having activity higher or equal to the given'
-                             ' second value will be recognized as active.')
-    parser.add_argument('-f', '--rdkit_factory', metavar='features.fdef', default=None, nargs='?',
-                        const=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef'),
+    parser.add_argument('-s', '--split_input_file', action='store_true', default=True,
+                        help='if True will splited input dasets into active and inactive sets if False will not')
+    parser.add_argument('-f', '--rdkit_factory', metavar='features.fdef', default=None,
                         help='text file with definition of pharmacophore features in RDKit format. If file name is not '
                              'specified the default file from the script dir will be used. This option has '
                              'a priority over smarts_features.')
-    parser.add_argument('-vs', '--virtual_screening', action='store_true', default=False,
-                        help='if True data will prepare for virtual screening.')
     parser.add_argument('-g', '--gen_tautomers', action='store_true', default=False,
                         help='if True tautomers at pH 7.4 are generated using Chemaxon.')
     parser.add_argument('-n', '--nconf', metavar='conf_number', default=100,
@@ -137,8 +141,7 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "input": in_fname = v
-        if o == "thresholds": thresholds = v
-        if o == "virtual_screening": vs = v
+        if o == "split_input_file": split_dataset = v
         if o == "rdkit_factory": rdkit_factory = v
         if o == "gen_tautomers": gen_tautomers = v
         if o == "nconf": nconf = int(v)
@@ -147,13 +150,9 @@ if __name__ == '__main__':
         if o == "tolerance": tolerance = float(v)
         if o == "ncpu": ncpu = int(v)
 
-    if rdkit_factory is None and smarts_features is None:
-        rdkit_factory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef')
-
 
     main(in_fname=in_fname,
-         thresholds=thresholds,
-         vs=vs,
+         split_dataset=split_dataset,
          rdkit_factory=rdkit_factory,
          gen_tautomers=gen_tautomers,
          nconf=nconf,

@@ -12,13 +12,7 @@ import numpy as np
 import pandas as pd
 import sqlite3 as sql
 from collections import defaultdict
-from pharmacophore import Pharmacophore
-
-
-def _make_dir(new_path):
-    for path in [os.path.split(new_path)[0], new_path]:
-        if not os.path.exists(path):
-            os.mkdir(path)
+from pmapper.pharmacophore import Pharmacophore
 
 
 def _keep_best_models(df, df_sub_act, df_sub_inact, df_ph_act, df_ph_inact, save_files):
@@ -68,7 +62,6 @@ def gen_models(def_generator, df_0):
         dct['feature_ids'].append(','.join(map(str, labels)))
     df = pd.DataFrame(dct)
     if df.empty:
-        print(df_0[:2])
         return df_0, df
     count_df = df.drop_duplicates(subset=['mol_name', 'hash'])
     count_df = count_df.groupby(['hash'], sort=True).size().reset_index(name='count')
@@ -164,7 +157,7 @@ def save_models_pma(df_ph, df_sub_act, path_pma, cluster_num, num_ids):
         os.path.split(path_pma)[1], i, round(time.time() - time_start, 3)))
 
 
-def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lower, save_files=False):
+def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lower, upper, save_files=False):
     # lower - number of model's features
     cluster_num = os.path.basename(act_trainset).split('.')[0].split('_')[1]  # number of cluster
     if cluster_num == 'centroid':
@@ -199,16 +192,16 @@ def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lowe
         df, df_sub_act, df_sub_inact, df_ph_act, df_ph_inact, save_files)
 
     while True:
+        if lower == upper:
+            df_sub_act_0 = df_sub_act
+            break
         lower += 1
-
-        print(lower, df_sub_act[:3], sep='\n')
 
         df_sub_act_0, df_sub_act = gen_models(_plus_one_feature(df_ph_act, df_sub_act[['conf_id', 'feature_ids']]), df_sub_act)
         if not df_sub_inact.empty:
             df_sub_inact_0, df_sub_inact = gen_models(_plus_one_feature(df_ph_inact, df_sub_inact[['conf_id', 'feature_ids']]), df_sub_inact)
         df = calc_internal_stat(df_sub_act[['hash', 'count']].drop_duplicates(subset=['hash']),
-                                df_sub_inact,
-                                act_trainset, clust_strategy)
+                                df_sub_inact, act_trainset, clust_strategy)
         if df.empty:
             lower -= 1
             break
@@ -219,10 +212,8 @@ def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lowe
         df_sub_act, df_sub_inact, df_ph_act, df_ph_inact = _keep_best_models(
             df, df_sub_act, df_sub_inact, df_ph_act, df_ph_inact, save_files)
 
-    path_pma = os.path.join(out_pma, '{}_ph{}'.format(cluster_num, lower))
-    _make_dir(path_pma)
-    save_models_pma(df_ph_act, df_sub_act_0, path_pma, cluster_num, lower)
-    return path_pma, lower
+    save_models_pma(df_ph_act, df_sub_act_0, out_pma, cluster_num, lower)
+    return out_pma, lower
 
 
 if __name__ == '__main__':

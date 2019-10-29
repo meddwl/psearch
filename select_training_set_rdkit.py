@@ -13,11 +13,12 @@ from rdkit.ML.Cluster import Butina
 from rdkit.Chem import AllChem, ChemicalFeatures
 from rdkit.Chem.Pharm2D import Generate
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
+from pmapper.customize import load_factory
 
 
 def read_file(fname, fcfp4, fdef_fname):
     if not fcfp4:
-        featFactory = ChemicalFeatures.BuildFeatureFactory(fdef_fname)
+        featFactory = load_factory(fdef_fname)
         sigFactory = SigFactory(featFactory, minPointCount=2, maxPointCount=3, trianglePruneBins=False)
         sigFactory.SetBins([(0, 2), (2, 5), (5, 8)])
         sigFactory.Init()
@@ -53,7 +54,7 @@ def save_cluster_stat(cs_index, len_act, clust_stat):
                i_act += 1
         #print('cluster №%i, cluster length %i, share of active %.2f' % (i, len(cluster), i_act/len(cluster)))
         #print(cluster, '\n')
-        clust_stat.write('cluster №%i, cluster length %i, share of active %.2f \n' % (i, len(cluster), i_act/len(cluster)))
+        clust_stat.write('cluster {}, cluster length {}, share of active {} \n'.format(i, len(cluster), i_act/len(cluster)))
 
 
 def diff_binding_mode(cs, mol_names, smiles, len_act, inact_centroids, min_num):
@@ -164,9 +165,9 @@ if __name__ == '__main__':
         if o == "clust_size": clust_size = int(v)
         if o == "max_act_ts": max_nact_trainset = int(v)
 
-    if not fcfp4 and not fdef_fname:
-        sys.stderr.write('At least one argument fcfp4 or rdkit_fdef should be set to a non default value.')
-        exit()
+    # if not fcfp4 and not fdef_fname:
+    #     sys.stderr.write('At least one argument fcfp4 or rdkit_fdef should be set to a non default value.')
+    #     exit()
 
     if not output:
         output = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_fname_act)))[0], 'trainset')

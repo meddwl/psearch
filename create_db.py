@@ -6,7 +6,6 @@
 
 import os
 import sys
-import gzip
 import pickle
 import marshal
 import argparse
@@ -17,7 +16,9 @@ from rdkit.Chem import ChemicalFeatures
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
 from multiprocessing import cpu_count, Pool
 from read_input import read_input
-from pharmacophore import Pharmacophore, read_smarts_feature_file, load_multi_conf_mol
+from pmapper.pharmacophore import Pharmacophore
+from pmapper.customize import load_smarts, load_factory
+from pmapper.utils import load_multi_conf_mol
 
 
 def create_tables(cursor, bin_step, smarts, store_coords, fp, nohash):
@@ -130,7 +131,8 @@ def process_mol(mol, mol_name, smarts, bin_step, store_coords, multiconf, tolera
 def pool_init(fdef_fname, bin_step):
     global process_factory
     global sig_factory
-    process_factory = ChemicalFeatures.BuildFeatureFactory(fdef_fname) if fdef_fname else None
+    process_factory = load_factory(fdef_fname)
+    # process_factory = ChemicalFeatures.BuildFeatureFactory(fdef_fname) if fdef_fname else None
     sig_factory = SigFactory(process_factory, minPointCount=2, maxPointCount=3, trianglePruneBins=False)
     q = []
     i = bin_step
@@ -159,7 +161,7 @@ def main_params(conformers_fname, out_fname, dbout_fname, bin_step, rewrite_db, 
     # load smarts features
     smarts = None
     if smarts_features_fname and rdkit_factory is None:
-        smarts = read_smarts_feature_file(smarts_features_fname)
+        smarts = load_smarts(smarts_features_fname)
 
     multiconf = conformers_fname.lower().endswith('.pkl')
 
@@ -176,10 +178,10 @@ def main_params(conformers_fname, out_fname, dbout_fname, bin_step, rewrite_db, 
 
     nprocess = max(min(ncpu, cpu_count()), 1)
 
-    if rdkit_factory:
-        p = Pool(nprocess, initializer=pool_init, initargs=[rdkit_factory, bin_step])
-    else:
+    if smarts:
         p = Pool(nprocess)
+    else:
+        p = Pool(nprocess, initializer=pool_init, initargs=[rdkit_factory, bin_step])
 
     lines_set = set()
 
@@ -187,7 +189,8 @@ def main_params(conformers_fname, out_fname, dbout_fname, bin_step, rewrite_db, 
 
     try:
         for i, res in enumerate(p.imap_unordered(map_process_mol,
-                                                 prep_input(conformers_fname, id_field_name, smarts, bin_step, store_coords, multiconf, tolerance, fp, nohash),
+                                                 prep_input(conformers_fname, id_field_name, smarts, bin_step,
+                                                            store_coords, multiconf, tolerance, fp, nohash),
                                                  chunksize=10), 1):
             counter += len(res)
             if dbout_fname is not None:
@@ -287,8 +290,8 @@ def main():
         if o == "fp": fp = v
         if o == "nohash": nohash = v
 
-    if rdkit_factory is None and smarts_features is None:
-        rdkit_factory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef')
+    # if rdkit_factory is None and smarts_features is None:
+    #     rdkit_factory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef')
 
     main_params(out_fname=out_fname,
                 dbout_fname=dbout_fname,

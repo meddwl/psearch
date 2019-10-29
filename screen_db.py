@@ -18,7 +18,6 @@ Conformer = namedtuple('Conformer', ['id', 'fp', 'pharmacophore'])
 
 
 def load_confs(mol_name, db_fname):
-
     connection = sqlite3.connect(db_fname)
     cur = connection.cursor()
 
@@ -82,14 +81,14 @@ def read_models(queries, output, is_output_sdf):
     return res
 
 
-def screen(mol_name, db_conn, models, input_sdf):
+def screen(mol_name, db_conn, training_set, models, input_sdf):
 
     def compare_fp(query_fp, fp):
         return (query_fp & fp) == query_fp
 
     get_transform_matrix = input_sdf is not None
 
-    confs = load_confs(mol_name, db_conn)
+    confs = load_confs(mol_name, db_conn, training_set)
 
     output = []
     for model in models:
@@ -105,7 +104,7 @@ def screen(mol_name, db_conn, models, input_sdf):
     return output
 
 
-def main(db_fname, queries, output, input_sdf, ncpu):
+def screen_db(db_fname, queries, training_set, output, input_sdf, ncpu):
 
     if output.endswith('.txt') or output.endswith('.sdf'):
         if not os.path.exists(os.path.dirname(output)):
@@ -121,14 +120,21 @@ def main(db_fname, queries, output, input_sdf, ncpu):
             os.remove(model.output_filename)
 
     comp_names = get_comp_names_from_db(db_fname)
-
-    p = Pool(ncpu)
-    for res in p.imap_unordered(partial(screen, db_conn=db_fname, models=models, input_sdf=input_sdf), comp_names, chunksize=10):
-        if not is_sdf_output:
-            for mol_name, conf_id, out_fname in res:
-                with open(out_fname, 'at') as f:
-                    f.write(mol_name + '\n')
-    p.close()
+    if ncpu == 1:
+        for res in screen(mol_name=comp_names, db_conn=db_fname, training_set=training_set, models=models, input_sdf=input_sdf):
+            if not is_sdf_output:
+                for mol_name, conf_id, out_fname in res:
+                    with open(out_fname, 'at') as f:
+                        f.write('{}\t{}\n'.format(mol_name, conf_id))
+    else:
+        p = Pool(ncpu)
+        for res in p.imap_unordered(partial(screen, db_conn=db_fname, models=models, training_set=training_set,
+                                            input_sdf=input_sdf), comp_names, chunksize=10):
+            if not is_sdf_output:
+                for mol_name, conf_id, out_fname in res:
+                    with open(out_fname, 'at') as f:
+                        f.write('{}\t{}\n'.format(mol_name, conf_id))
+        p.close()
 
 
 if __name__ == '__main__':
@@ -140,6 +146,8 @@ if __name__ == '__main__':
     parser.add_argument('-q', '--query', metavar='model.pma', required=True, type=str, nargs='+',
                         help='pharmacophore model or models or a directory path. If a directory is specified all '
                              'pma-files will be used for screening.')
+    parser.add_argument('-t', '--training_set', metavar='active.smi', default=None,
+                        help='txt file with training set molecules.')
     parser.add_argument('-o', '--output', required=True, type=str,
                         help='path to an output text (.txt) file which will store names of compounds fit the model(s). '
                              'If input_sdf argument is specified the output should be an sdf file (.sdf) to store '
@@ -155,8 +163,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(db_fname=args.dbname,
-         queries=args.query,
-         output=args.output,
-         input_sdf=args.input_sdf,
-         ncpu=args.ncpu)
+    screen_db(db_fname=args.dbname,
+              queries=args.query,
+              training_set=args.training_set,
+              output=args.output,
+              input_sdf=args.input_sdf,
+              ncpu=args.ncpu)

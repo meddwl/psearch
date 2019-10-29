@@ -10,20 +10,23 @@ import pandas as pd
 
 
 def main(in_fname, out_act_fname, out_inact_fname):
+    """
+    split a dataset into an active and an inactive sets by status column
+    :param in_fname: input .smi file
+    :param out_act_fname: path where wlii saved an active set
+    :param out_inact_fname: path where will saved an inactive set
+    :return: None
+    """
 
     df = pd.read_csv(in_fname, sep=',')
 
-    df = df[['standardized_canonical_smiles', 'cmp', 'status']]
+    # df = df[['standardized_canonical_smiles', 'cmp', 'status']]
     df_act = df[df['status'] == 'active']
     df_act.to_csv(out_act_fname, sep='\t', index=None, header=None)
     df_inact = df[df['status'] == 'inactive']
     df_inact.to_csv(out_inact_fname, sep='\t', index=None, header=None)
 
-    n_act = df_act.shape[0]
-    n_inact = df_inact.shape[0]
-
-
-    sys.stderr.write('actives: %i, inactives: %i.\n' % (n_act, n_inact))
+    sys.stderr.write('actives: %i, inactives: %i.\n' % (df_act.shape[0], df_inact.shape[0]))
 
 
 if __name__ == '__main__':
@@ -36,31 +39,14 @@ if __name__ == '__main__':
                         help='output SMILES file name for active compounds.')
     parser.add_argument('-oi', '--out_inact', metavar='inactive.smi', required=True,
                         help='output SMILES file name for inactive compounds.')
-    parser.add_argument('-ta', '--act_threshold', metavar='VALUE', default=8.0,
-                        help='specify threshold used to determine active compounds.'
-                             'Compounds having activity higher or equal to the given'
-                             'value will be recognized as active. Default: 8.')
-    parser.add_argument('-ti', '--inact_threshold', metavar='inact_threshold', default=6.0,
-                        help='specify threshold used to determine inactive compounds.'
-                             'Compounds having activity less or equal to the given'
-                             'value will be recognized as inactive. Default: 6.')
-    parser.add_argument('-l', '--label', action='store_true', default=False,
-                        help='a criterion of molecules separation. '
-                             'If True - absolute separation of molecules into active and inactive.'
-                             'If False - separation of molecules into active and inactive by value')
+
 
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "in": in_fname = v
         if o == "out_act": out_act_fname = v
         if o == "out_inact": out_inact_fname = v
-        if o == "act_threshold": act_threshold = float(v)
-        if o == "inact_threshold": inact_threshold = float(v)
-        if o == "label": label = v
 
     main(in_fname=in_fname,
          out_act_fname=out_act_fname,
-         out_inact_fname=out_inact_fname,
-         act_threshold=act_threshold,
-         inact_threshold=inact_threshold,
-         label=label)
+         out_inact_fname=out_inact_fname)
