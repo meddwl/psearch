@@ -58,7 +58,7 @@ def get_comp_names_from_db(db_fname):
 def read_models(queries, output, is_output_sdf):
 
     if len(queries) == 1 and os.path.isdir(queries[0]):
-        input_fnames = tuple(os.path.abspath(os.path.join(queries[0], f)) for f in os.listdir(queries[0]) if f.endswith('.pma'))
+        input_fnames = tuple(os.path.abspath(os.path.join(queries[0], f)) for f in os.listdir(queries[0]) if f.endswith('.pma') or f.endswith('.xyz'))
     else:
         input_fnames = tuple(os.path.abspath(f) for f in queries if os.path.isfile(f) and f.endswith('.pma'))
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
                         help='input SQLite database with generated conformers.')
     parser.add_argument('-q', '--query', metavar='model.pma', required=True, type=str, nargs='+',
                         help='pharmacophore model or models or a directory path. If a directory is specified all '
-                             'pma-files will be used for screening.')
+                             'pma- and xyz-files will be used for screening as pharmacophore models.')
     parser.add_argument('-o', '--output', required=True, type=str,
                         help='path to an output text (.txt) file which will store names of compounds fit the model(s). '
                              'If input_sdf argument is specified the output should be an sdf file (.sdf) to store '
