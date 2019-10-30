@@ -108,7 +108,7 @@ def screen(mol_name, db_conn, models, input_sdf, match_first_conf):
     return output
 
 
-def main(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
+def screen_db(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
 
     if output.endswith('.txt') or output.endswith('.sdf'):
         if not os.path.exists(os.path.dirname(output)):
@@ -140,7 +140,7 @@ def main(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
         p.close()
 
 
-if __name__ == '__main__':
+def entry_point():
     parser = argparse.ArgumentParser(description='Screen SQLite DB with compounds against pharmacophore queries.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--dbname', metavar='input_active.db, input_inactive.db',
@@ -166,9 +166,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(db_fname=args.dbname,
-         queries=args.query,
-         output=args.output,
-         input_sdf=args.input_sdf,
-         match_first_conf=not args.conf,
-         ncpu=args.ncpu)
+    screen_db(db_fname=args.dbname,
+              queries=args.query,
+              output=args.output,
+              input_sdf=args.input_sdf,
+              match_first_conf=not args.conf,
+              ncpu=args.ncpu)
+
+
+if __name__ == '__main__':
+    entry_point()
