@@ -17,6 +17,14 @@ Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['id', 'fp', 'pharmacophore'])
 
 
+def get_bin_step(db_fname):
+    connection = sqlite3.connect(db_fname)
+    cur = connection.cursor()
+    cur.execute("SELECT bin_step FROM settings")
+    bin_step = cur.fetchone()[0]
+    return bin_step
+
+
 def load_confs(mol_name, db_fname):
     connection = sqlite3.connect(db_fname)
     cur = connection.cursor()
@@ -55,7 +63,7 @@ def get_comp_names_from_db(db_fname):
     return mol_names
 
 
-def read_models(queries, output, is_output_sdf):
+def read_models(queries, output, is_output_sdf, bin_step):
 
     if len(queries) == 1 and os.path.isdir(queries[0]):
         input_fnames = tuple(os.path.abspath(os.path.join(queries[0], f)) for f in os.listdir(queries[0]) if f.endswith('.pma') or f.endswith('.xyz'))
@@ -78,6 +86,7 @@ def read_models(queries, output, is_output_sdf):
             p.load_from_pma(input_fname)
         elif input_fname.endswith('.xyz'):
             p.load_from_xyz(input_fname)
+        p.update(bin_step=bin_step)
         fp = p.get_fp()
         res.append(Model(model_name, fp, p, output_fname))
 
@@ -118,7 +127,8 @@ def screen_db(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
             os.makedirs(output, exist_ok=True)
 
     is_sdf_output = input_sdf is not None
-    models = read_models(queries, output, is_sdf_output)   # return list of Model namedtuples
+    bin_step = get_bin_step(db_fname)
+    models = read_models(queries, output, is_sdf_output, bin_step)   # return list of Model namedtuples
     for model in models:
         if os.path.isfile(model.output_filename):
             os.remove(model.output_filename)
