@@ -153,8 +153,7 @@ def screen_db(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
 def entry_point():
     parser = argparse.ArgumentParser(description='Screen SQLite DB with compounds against pharmacophore queries.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--dbname', metavar='input_active.db, input_inactive.db',
-                        type=str, required=True,
+    parser.add_argument('-d', '--dbname', metavar='input_active.db, input_inactive.db', type=str, required=True,
                         help='input SQLite database with generated conformers.')
     parser.add_argument('-q', '--query', metavar='model.pma', required=True, type=str, nargs='+',
                         help='pharmacophore model or models or a directory path. If a directory is specified all '
@@ -169,7 +168,7 @@ def entry_point():
     parser.add_argument('--input_sdf', metavar='input.sdf', default=None, type=str,
                         help='sdf file with conformers used for creation of SQLite DB. Should be specified if '
                              'conformers fitted to model should be returned.')
-    parser.add_argument('--conf', action='store_true', default=False, type=bool,
+    parser.add_argument('--conf', action='store_true', default=False,
                         help='return all conformers matches as separate hits in a hit list.')
     parser.add_argument('-c', '--ncpu', metavar='INTEGER', default=1, type=int,
                         help='number of cores to use.')
