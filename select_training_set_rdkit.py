@@ -81,7 +81,7 @@ def get_centroids(cs, d_msf, num):
     return tuple(sorted((d_msf['mol_name'][x[0]], d_msf['smiles'][x[0]]) for x in cs if len(x) >= num))
 
 
-def main(in_fname_act, in_fname_inact, output,
+def trainingset_formation(in_fname_act, in_fname_inact, output,
          fdef_fname, make_clust, fcfp4, clust_stat, threshold_clust, clust_size, max_nact_trainset):
 
     d_msf_act = read_file(in_fname_act, fcfp4, fdef_fname)  # defaltdict(list) keys: mol_name, SMILES, fingerprint
@@ -174,13 +174,13 @@ if __name__ == '__main__':
         if not os.path.isdir(output):
             os.makedirs(output)
 
-    main(in_fname_act=in_fname_act,
-         in_fname_inact=in_fname_inact,
-         output=output,
-         fdef_fname=fdef_fname,
-         make_clust=make_clust,
-         fcfp4=fcfp4,
-         clust_stat=clust_stat,
-         threshold_clust=threshold_clust,
-         clust_size=clust_size,
-         max_nact_trainset=max_nact_trainset)
+    trainingset_formation(in_fname_act=in_fname_act,
+                          in_fname_inact=in_fname_inact,
+                          output=output,
+                          fdef_fname=fdef_fname,
+                          make_clust=make_clust,
+                          fcfp4=fcfp4,
+                          clust_stat=clust_stat,
+                          threshold_clust=threshold_clust,
+                          clust_size=clust_size,
+                          max_nact_trainset=max_nact_trainset)

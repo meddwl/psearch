@@ -37,9 +37,9 @@ def multiprofile_screening(path_db, target_csv, path_screens, ncpu):
         path_query = os.path.join(path_chembls, chembl_id, 'models')
         screen_db(db_fname=path_db,
                   queries=path_query,
-                  training_set=None,
                   output=path_screen,
                   input_sdf=None,
+                  match_first_conf=True,
                   ncpu=ncpu)
 
         nmols = get_comp_names_from_db(path_db)

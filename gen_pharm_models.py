@@ -153,11 +153,11 @@ def save_models_pma(df_ph, df_sub_act, path_pma, cluster_num, num_ids):
             pharm.save_to_pma(os.path.join(path_pma, '{}_pharm{}_{}.pma'.format(cluster_num, num_ids, i)),
                               tuple(map(int, ids.split(','))))
             i += 1
-    sys.stderr.write('{}: extract {} models passed ({}s)\n\n'.format(
+    sys.stderr.write('{}: extract {} models passed ({}s)\n'.format(
         os.path.split(path_pma)[1], i, round(time.time() - time_start, 3)))
 
 
-def main(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lower, upper, save_files=False):
+def gen_pharm_models(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tolerance, lower, upper, save_files=False):
     # lower - number of model's features
     cluster_num = os.path.basename(act_trainset).split('.')[0].split('_')[1]  # number of cluster
     if cluster_num == 'centroid':
@@ -252,10 +252,10 @@ if __name__ == '__main__':
     if not out_pma:
         out_pma = os.path.join(os.path.split(os.path.dirname(adb))[0], 'models')
 
-    main(in_adb=adb,
-         in_indb=indb,
-         act_trainset=act_trainset,
-         inact_trainset=inact_trainset,
-         out_pma=out_pma,
-         tolerance=tolerance,
-         lower=lower)
+    gen_pharm_models(in_adb=adb,
+                     in_indb=indb,
+                     act_trainset=act_trainset,
+                     inact_trainset=inact_trainset,
+                     out_pma=out_pma,
+                     tolerance=tolerance,
+                     lower=lower)

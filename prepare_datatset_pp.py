@@ -93,7 +93,8 @@ def main(in_fname, split_dataset, rdkit_factory, gen_tautomers, nconf, energy, r
         mol_act = os.path.join(comm_path, 'active.smi')
         mol_inact = os.path.join(comm_path, 'inactive.smi')
         split.main(in_fname[0], mol_act, mol_inact)
-        in_fname = [mol_act, mol_inact]
+        #in_fname = [mol_act, mol_inact]
+        in_fname = [mol_act]
 
     procs = []
     for index, fname in enumerate(in_fname):

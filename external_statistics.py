@@ -27,7 +27,7 @@ def max_edge(in_model):
     return edge
 
 
-def get_external_stat(mol_act, mol_inact, in_pma, in_act_screen, in_inact_screen):
+def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_screen, in_inact_screen):
     medge = max_edge(in_pma)
     model = os.path.basename(in_pma).split('.')[0]
     with open(in_pma) as fpma:
@@ -35,38 +35,31 @@ def get_external_stat(mol_act, mol_inact, in_pma, in_act_screen, in_inact_screen
         labels = ''.join(i[0] for i in d['feature_coords'])
         num_uniq_features = len(set(tuple(feature[1]) for feature in d['feature_coords']))
 
-    all_active_mol = len(open(mol_act).readlines())
-    all_inactive_mol = len(open(mol_inact).readlines())
+    p = len(open(mol_act).readlines())
+    n = len(open(mol_inact).readlines())
 
-    ts_active_mol = []
-    ts_inactive_mol = []
-    act_screen = []
-    inact_screen = []
+    ts_active_mol = [ii.strip().split('\t')[1] for ii in open(ts_act).readlines()]
     if os.path.exists(in_act_screen):
-        with open(in_act_screen) as fs:
-            for column in fs:
-                act_screen.append(column.strip().split('\t')[0])
-        tp = len(act_screen)
+        act_screen = [ii.strip() for ii in open(in_act_screen).readlines()]
+        tp = len(set(act_screen).difference(ts_active_mol))
     else:
         tp = 0
-
+    ts_inactive_mol = [ii.strip().split('\t')[1] for ii in open(ts_inact).readlines()]
     if os.path.exists(in_inact_screen):
-        with open(in_inact_screen) as fs:
-            for column in fs:
-                inact_screen.append(column.strip().split('\t')[0])
-        fp = len(inact_screen)
+        inact_screen = [ii.strip() for ii in open(in_inact_screen).readlines()]
+        fp = len(set(inact_screen).difference(ts_inactive_mol))
     else:
         fp = 0
 
-    fn = all_active_mol - tp - len(ts_active_mol)
-    tn = all_inactive_mol - fp - len(ts_inactive_mol)
+    fn = p - tp - len(ts_active_mol)
+    tn = n - fp - len(ts_inactive_mol)
 
     if tp != 0 or fp != 0:
         precision = round(tp / (tp + fp), 3)
         recall = round(tp / (tp + fn), 3)
         fpr = round(fp / (tn + fp), 3)
-        ba = round((recall + (tn / (tn + fp))) / 2, 3)
-        ef = round((tp / (tp + fp)) / (all_active_mol / (all_inactive_mol + all_active_mol)), 3)
+        # ba = round((recall + (tn / (tn + fp))) / 2, 3)
+        ef = round((tp / (tp + fp)) / (p / (p + n)), 3)
         if precision != 0 and recall != 0:
             f1 = round((2 * precision * recall) / (precision + recall), 3)
             f2 = round((5 * precision * recall) / (4 * precision + recall), 3)
@@ -76,24 +69,26 @@ def get_external_stat(mol_act, mol_inact, in_pma, in_act_screen, in_inact_screen
             f2 = -1
             f05 = -1
 
-        return [model, tp, fp, precision, fpr, recall, f1, f2, f05, ba, ef, num_uniq_features, medge, labels]
+        return [model, tp, fp, p, n, precision, fpr, recall, f1, f2, f05, ef, num_uniq_features, medge, labels]
 
     elif tp != 0 or fp != 0:
         return [model, tp, fp, -1, -1, -1, -1, -1, -1, -1, -1, num_uniq_features, medge, labels]
 
 
-def main(mol_act, mol_inact, path_to_pma, in_act_screen, in_inact_screen, out_external):
+def calc_stat(mol_act, mol_inact, path_ts, path_to_pma, in_act_screen, in_inact_screen, out_external):
     start_time = time.time()
 
-    df_result = pd.DataFrame(columns=['model', 'TP', 'FP', 'precision', 'FPR', 'recall',
-                                      'F1', 'F2', 'F05', 'BA', 'EF', 'num_uniq_F', 'max_edge', 'features'])
+    df_result = pd.DataFrame(columns=['model', 'TP', 'FP', 'P', 'N', 'precision', 'FPR', 'recall',
+                                      'F1', 'F2', 'F05', 'EF', 'num_uniq_F', 'max_edge', 'features'])
 
     for enum, in_pma in enumerate(os.listdir(path_to_pma)):
-        ppath = (os.path.join(os.path.abspath(in_act_screen), '{}.txt'.format(in_pma.split('.')[0])),
+        ppath = (os.path.join(os.path.abspath(path_ts), 'active_{}.csv'.format(in_pma.split('_')[0])),
+                 os.path.join(os.path.abspath(path_ts), 'inactive_{}.csv'.format(in_pma.split('_')[0])),
+                 os.path.join(os.path.abspath(in_act_screen), '{}.txt'.format(in_pma.split('.')[0])),
                  os.path.join(os.path.abspath(in_inact_screen), '{}.txt'.format(in_pma.split('.')[0])),
                  os.path.abspath(os.path.join(path_to_pma, in_pma)))
 
-        result = get_external_stat(mol_act, mol_inact, ppath[2], ppath[0], ppath[1])
+        result = get_external_stat(mol_act, mol_inact, ppath[0], ppath[1], ppath[4], ppath[2], ppath[3])
         if result:
             df_result.loc[enum] = result
         else:
@@ -107,10 +102,12 @@ def main(mol_act, mol_inact, path_to_pma, in_act_screen, in_inact_screen, out_ex
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-ma', '--input_active_mol', metavar='active.smi', required=True,
+    parser.add_argument('-ma', '--input_active', metavar='active.smi', required=True,
                         help='.smi file with active molecules.')
-    parser.add_argument('-mi', '--input_inactive_mol', metavar='inactive.smi', required=True,
+    parser.add_argument('-mi', '--input_inactive', metavar='inactive.smi', required=True,
                         help='.smi file with inactive molecules.')
+    parser.add_argument('-t', '--path_trainset', metavar='active.smi', required=True,
+                        help='path to folders with files of training sets.')
     parser.add_argument('-p', '--path_to_pma', metavar='models/pYY/', required=True,
                         help='path to pma files')
     parser.add_argument('-as', '--act_screen', metavar='screen/pYY/', required=True,
@@ -123,8 +120,9 @@ if __name__ == '__main__':
 
     args = vars(parser.parse_args())
     for o, v in args.items():
-        if o == "input_active_mol": mol_act = v
-        if o == "input_inactive_mol": mol_inact = v
+        if o == "input_active": mol_act = v
+        if o == "input_inactive": mol_inact = v
+        if o == "path_trainset": path_ts = v
         if o == "path_to_pma": path_to_pma = v
         if o == "act_screen": act_screen = v
         if o == "inact_screen": inact_screen = v
@@ -136,4 +134,4 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.dirname(out_external)):
         os.makedirs(os.path.dirname(out_external))
 
-    main(mol_act, mol_inact, path_to_pma, act_screen, inact_screen, out_external)
+    calc_stat(mol_act, mol_inact, path_ts, path_to_pma, act_screen, inact_screen, out_external)
