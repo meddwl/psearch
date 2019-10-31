@@ -15,7 +15,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
 #######    url="https://github.com/DrrDom/pmapper",
-    packages=['psearch'],
+    packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
@@ -30,6 +30,12 @@ setuptools.setup(
         'pmapper': ['pmapper>=0.2'],
     },
     entry_points={'console_scripts':
-                      ['get_pharm_counts = pmapper.get_pharm_counts:entry_point']},
+                      ['psearch = psearch.psearch:entry_point',
+                       'prepare_dataset = psearch.prepare_dataset:entry_point',
+                       'gen_stereo = psearch.scripts.gen_stereo_rdkit:entry_point',
+                       'gen_conf = psearch.scripts.gen_conf_rdkit:entry_point',
+                       'create_db = psearch.scripts.create_db:entry_point',
+                       'screen_db = psearch.scripts.screen_db:entry_point',
+                       'external_stat = psearch.scripts.external_statistics:entry_point']},
     include_package_data=True
 )
