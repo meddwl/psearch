@@ -4,10 +4,44 @@ import sys
 import argparse
 from multiprocessing import Pool
 
-from screen_db import screen_db
-from external_statistics import calc_stat
-from gen_pharm_models import gen_pharm_models
-from select_training_set_rdkit import trainingset_formation
+from .scripts.screen_db import screen_db
+from .scripts.external_statistics import calc_stat
+from .scripts.gen_pharm_models import gen_pharm_models
+from .scripts.select_training_set_rdkit import trainingset_formation
+
+
+def create_parser():
+    parser = argparse.ArgumentParser(description='Pharmacophore model building', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-ma', '--active_mol', metavar='active.smi', required=True,
+                        help='.smi file with active molecules.')
+    parser.add_argument('-mi', '--inactive_mol', metavar='inactive.smi', required=True,
+                        help='.smi file with inactive molecules.')
+    parser.add_argument('-adb', '--input_active_db', metavar='input.db', required=True,
+                        help='SQLite DB with active pharmacophores (feature coordinates).')
+    parser.add_argument('-idb', '--input_inactive_db', metavar='input.db', required=True,
+                        help='SQLite DB with inactive pharmacophores (feature coordinates).')
+    parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
+                        help='1 - form a training set by Stategy 1,'
+                             '2 - form a training set by Stategy 2,'
+                             '1 2 - form a training sets by Stategy 1 and Stategy 2,')
+    parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', nargs='+', type=str, default=None,
+                        help='If None, the path will be generated automatically. ')
+    parser.add_argument('-pma', '--path_pma', metavar='path/pma/files', default=None,
+                        help='If None, the path will be generated automatically. ')
+    parser.add_argument('-ps', '--path_screen', metavar='path/pma/files', default=None,
+                        help='If None, the path will be generated automatically. ')
+    parser.add_argument('-u', '--upper', metavar='6', type=int, default=1000,
+                        help='upper number of features used for generation of subpharmacophores.'
+                             'if None well generated pharmacophores with as many features as possible')
+    parser.add_argument('-tol', '--tolerance', metavar='VALUE', default=0,
+                        help='tolerance used for calculation of a stereoconfiguration sign.')
+    parser.add_argument('-thr', '--threshold_clust', default=0.4,
+                        help='threshold for сlustering data by Butina algorithm')
+    parser.add_argument('--fdef', metavar='smarts.fdef', default=None,
+                        help='fdef-file with pharmacophore feature definition.')
+    parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
+                        help='number of cpus to use for calculation.')
+    return parser
 
 
 def creating_pharmacophore(in_adb, in_indb, files_ats, files_ints, path_pma, tol, upper):
@@ -107,39 +141,8 @@ def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_ts, path_pma,
                              ncpu=ncpu)
 
 
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(description='Pharmacophore model building', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-ma', '--active_mol', metavar='active.smi', required=True,
-                        help='.smi file with active molecules.')
-    parser.add_argument('-mi', '--inactive_mol', metavar='inactive.smi', required=True,
-                        help='.smi file with inactive molecules.')
-    parser.add_argument('-adb', '--input_active_db', metavar='input.db', required=True,
-                        help='SQLite DB with active pharmacophores (feature coordinates).')
-    parser.add_argument('-idb', '--input_inactive_db', metavar='input.db', required=True,
-                        help='SQLite DB with inactive pharmacophores (feature coordinates).')
-    parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
-                        help='1 - form a training set by Stategy 1,'
-                             '2 - form a training set by Stategy 2,'
-                             '1 2 - form a training sets by Stategy 1 and Stategy 2,')
-    parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', nargs='+', type=str, default=None,
-                        help='If None, the path will be generated automatically. ')
-    parser.add_argument('-pma', '--path_pma', metavar='path/pma/files', default=None,
-                        help='If None, the path will be generated automatically. ')
-    parser.add_argument('-ps', '--path_screen', metavar='path/pma/files', default=None,
-                        help='If None, the path will be generated automatically. ')
-    parser.add_argument('-u', '--upper', metavar='6', type=int, default=1000,
-                        help='upper number of features used for generation of subpharmacophores.'
-                             'if None well generated pharmacophores with as many features as possible')
-    parser.add_argument('-tol', '--tolerance', metavar='VALUE', default=0,
-                        help='tolerance used for calculation of a stereoconfiguration sign.')
-    parser.add_argument('-thr', '--threshold_clust', default=0.4,
-                        help='threshold for сlustering data by Butina algorithm')
-    parser.add_argument('--fdef', metavar='smarts.fdef', default=None,
-                        help='fdef-file with pharmacophore feature definition.')
-    parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
-                        help='number of cpus to use for calculation.')
-
+def entry_point():
+    parser = create_parser()
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "active_mol": active_mol = v
@@ -166,12 +169,11 @@ if __name__ == '__main__':
         path_pma = os.path.join(os.path.split(os.path.dirname(in_adb))[0], 'models')
         if not os.path.isdir(path_pma):
             os.makedirs(path_pma)
-    
+
     if not path_screen:
         path_screen = os.path.join(os.path.split(path_pma)[0], 'screen')
         if not os.path.isdir(path_screen):
             os.makedirs(path_screen)
-
 
     main(mol_act=active_mol,
          mol_inact=inactive_mol,
@@ -186,3 +188,7 @@ if __name__ == '__main__':
          threshold_clust=threshold_clust,
          fdef_fname=fdef_fname,
          ncpu=ncpu)
+
+
+if __name__ == '__main__':
+    entry_point()
