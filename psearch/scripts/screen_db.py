@@ -10,7 +10,7 @@ import marshal
 import sqlite3
 from collections import defaultdict, namedtuple
 from pmapper.pharmacophore import Pharmacophore
-from multiprocessing import Pool, Lock
+from multiprocessing import Pool
 from functools import partial
 
 Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
@@ -32,6 +32,9 @@ def create_parser():
                              'should be path to a directory where output files will be created to store '
                              'screening results. Type of the output is recognized by file extension. '
                              'Existed output files will be overwritten.')
+    parser.add_argument('-f', '--min_features', metavar='INTEGER', default=None, type=int,
+                        help='minimum number of features with distinct coordinates in models. '
+                             'Default: all models will be screened.')
     parser.add_argument('--input_sdf', metavar='input.sdf', default=None, type=str,
                         help='sdf file with conformers used for creation of SQLite DB. Should be specified if '
                              'conformers fitted to model should be returned.')
@@ -88,7 +91,7 @@ def get_comp_names_from_db(db_fname):
     return mol_names
 
 
-def read_models(queries, output, is_output_sdf, bin_step):
+def read_models(queries, output, is_output_sdf, bin_step, min_features):
 
     if len(queries) == 1 and os.path.isdir(queries[0]):
         input_fnames = tuple(os.path.abspath(os.path.join(queries[0], f)) for f in os.listdir(queries[0]) if f.endswith('.pma') or f.endswith('.xyz'))
@@ -111,6 +114,9 @@ def read_models(queries, output, is_output_sdf, bin_step):
             p.load_from_pma(input_fname)
         elif input_fname.endswith('.xyz'):
             p.load_from_xyz(input_fname)
+        # skip models with less number of features with distinct coordinates that given
+        if min_features is not None and len(set(xyz for label,xyz in p.get_feature_coords())) < min_features:
+            continue
         p.update(bin_step=bin_step)
         fp = p.get_fp()
         res.append(Model(model_name, fp, p, output_fname))
@@ -142,7 +148,7 @@ def screen(mol_name, db_conn, models, input_sdf, match_first_conf):
     return output
 
 
-def screen_db(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
+def screen_db(db_fname, queries, output, input_sdf, match_first_conf, min_features, ncpu):
 
     if output.endswith('.txt') or output.endswith('.sdf'):
         if not os.path.exists(os.path.dirname(output)):
@@ -153,7 +159,7 @@ def screen_db(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
 
     is_sdf_output = input_sdf is not None
     bin_step = get_bin_step(db_fname)
-    models = read_models(queries, output, is_sdf_output, bin_step)   # return list of Model namedtuples
+    models = read_models(queries, output, is_sdf_output, bin_step, min_features)   # return list of Model namedtuples
     for model in models:
         if os.path.isfile(model.output_filename):
             os.remove(model.output_filename)
@@ -184,6 +190,7 @@ def entry_point():
               output=args.output,
               input_sdf=args.input_sdf,
               match_first_conf=not args.conf,
+              min_features=args.min_features,
               ncpu=args.ncpu)
 
 
