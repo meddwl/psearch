@@ -5,15 +5,43 @@
 #==============================================================================
 
 import os
-import sys
 import argparse
 from collections import defaultdict
 from rdkit import Chem, DataStructs
 from rdkit.ML.Cluster import Butina
-from rdkit.Chem import AllChem, ChemicalFeatures
+from rdkit.Chem import AllChem
 from rdkit.Chem.Pharm2D import Generate
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
 from pmapper.customize import load_factory
+
+
+def create_parser():
+    parser = argparse.ArgumentParser(description='select compounds for training set',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-a', '--in_act', metavar='input_active.smi', required=True,
+                        help='input SMILES file name with active compounds.')
+    parser.add_argument('-i', '--in_inact', metavar='input_inactive.smi', required=True,
+                        help='input SMILES file name with inactive compounds.')
+    parser.add_argument('-o', '--output', metavar='output/path', default=None,
+                        help='output path. The folder where will be saved a training set.')
+    parser.add_argument('-clust', '--make_clust', action='store_true', default=False,
+                        help='if set training sets will be created for separate clusters, '
+                             'otherwise only one training set will be created.')
+    parser.add_argument('-f', '--rdkit_fdef', metavar='smarts.fdef', required=False, default=None,
+                        help='fdef-file with pharmacophore feature definition.')
+    parser.add_argument('--fcfp4', action='store_true', default=False,
+                        help='if set FCFP4 fingerprints will be used for compound selection, '
+                             'otherwise pharmacophore fingerprints will be used based on feature '
+                             'definitions provided by --rdkit_fdef argument.')
+    parser.add_argument('-s', '--cluster_stat', default=None,
+                        help='if designate path to file than save cluster statistics')
+    parser.add_argument('-t', '--threshold_clust', default=0.4,
+                        help='treshold for сlustering data by Butina algorithm')
+    parser.add_argument('-clz', '--clust_size', default=5,
+                        help='minimum cluster size from extract centroinds for training set')
+    parser.add_argument('-m', '--max_act_ts', default=5,
+                        help='maximum number of active compounds for training set')
+    return parser
 
 
 def read_file(fname, fcfp4, fdef_fname):
@@ -125,33 +153,8 @@ def trainingset_formation(in_fname_act, in_fname_inact, output,
     return ftrainset
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='select compounds for training set',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-a', '--in_act', metavar='input_active.smi', required=True,
-                        help='input SMILES file name with active compounds.')
-    parser.add_argument('-i', '--in_inact', metavar='input_inactive.smi', required=True,
-                        help='input SMILES file name with inactive compounds.')
-    parser.add_argument('-o', '--output', metavar='output/path', default=None,
-                        help='output path. The folder where will be saved a training set.')
-    parser.add_argument('-clust', '--make_clust', action='store_true', default=False,
-                        help='if set training sets will be created for separate clusters, '
-                             'otherwise only one training set will be created.')
-    parser.add_argument('-f', '--rdkit_fdef', metavar='smarts.fdef', required=False, default=None,
-                        help='fdef-file with pharmacophore feature definition.')
-    parser.add_argument('--fcfp4', action='store_true', default=False,
-                        help='if set FCFP4 fingerprints will be used for compound selection, '
-                             'otherwise pharmacophore fingerprints will be used based on feature '
-                             'definitions provided by --rdkit_fdef argument.')
-    parser.add_argument('-s', '--cluster_stat', default=None,
-                        help='if designate path to file than save cluster statistics')
-    parser.add_argument('-t', '--threshold_clust', default=0.4,
-                        help='treshold for сlustering data by Butina algorithm')
-    parser.add_argument('-clz', '--clust_size', default=5,
-                        help='minimum cluster size from extract centroinds for training set')
-    parser.add_argument('-m', '--max_act_ts', default=5,
-                        help='maximum number of active compounds for training set')
-
+def entry_point():
+    parser = create_parser()
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "in_act": in_fname_act = v
@@ -184,3 +187,7 @@ if __name__ == '__main__':
                           threshold_clust=threshold_clust,
                           clust_size=clust_size,
                           max_nact_trainset=max_nact_trainset)
+
+
+if __name__ == '__main__':
+    entry_point()
