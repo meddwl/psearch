@@ -15,7 +15,7 @@ from itertools import combinations
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from multiprocessing import Pool, cpu_count
-from read_input import read_input
+from .read_input import read_input
 
 
 def prep_input(fname, id_field_name, nconf, energy, rms, seed):
@@ -128,7 +128,7 @@ def main_params(in_fname, out_fname, id_field_name, nconf, energy, rms, ncpu, se
         sys.stderr.write("\n")
 
 
-def main():
+def entry_point():
     parser = argparse.ArgumentParser(description='Generate specified number of conformers using RDKit.')
     parser.add_argument('-i', '--in', metavar='input.sdf', required=False, default=None,
                         help='input file with structures to generate conformers. Allowed formats SDF or SMILES. '
@@ -180,6 +180,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main_params(os.path.abspath('../dir/active_stereo.smi'), os.path.abspath('../dir/active_conf.sdf'), None, 100, 100, 0.5, 2, 1, True)
-    # main()
+    entry_point()
 
