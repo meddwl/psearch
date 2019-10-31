@@ -12,8 +12,36 @@ from subprocess import Popen, PIPE
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from multiprocessing import Process
 
-import gen_stereo_rdkit, gen_conf_rdkit, split
-import create_db
+from .scripts import gen_stereo_rdkit, gen_conf_rdkit, split
+from .scripts import create_db
+
+
+def create_parser():
+    parser = ArgumentParser(description='', formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-i', '--input', metavar='input.smi', nargs='+', type=str, required=True,
+                        help='input smi file or multiple files')
+    parser.add_argument('-s', '--split_input_file', action='store_true', default=True,
+                        help='if True will splited input dasets into active and inactive sets if False will not')
+    parser.add_argument('-f', '--rdkit_factory', metavar='features.fdef', default=None,
+                        help='text file with definition of pharmacophore features in RDKit format. If file name is not '
+                             'specified the default file from the script dir will be used. This option has '
+                             'a priority over smarts_features.')
+    parser.add_argument('-g', '--gen_tautomers', action='store_true', default=False,
+                        help='if True tautomers at pH 7.4 are generated using Chemaxon.')
+    parser.add_argument('-n', '--nconf', metavar='conf_number', default=100,
+                        help='number of generated conformers.')
+    parser.add_argument('-e', '--energy_cutoff', metavar='100', default=100,
+                        help='conformers with energy difference from the lowest one greater than the specified '
+                             'value will be discarded.')
+    parser.add_argument('-r', '--rms', metavar='rms_threshold', default=0.5,
+                        help='only conformers with RMS higher then threshold will be kept.')
+    parser.add_argument('-tol', '--tolerance', default=0,
+                        help='tolerance volume for the calculation of the stereo sign. If the volume of the '
+                             'tetrahedron created by four points less than tolerance then those points are considered '
+                             'lying on the same plane (flat; stereo sign is 0).')
+    parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
+                        help='number of cpus to use for processing of actives and inactives separately. ')
+    return parser
 
 
 def generate_tautomers(input_fname, output_fname):
@@ -113,32 +141,8 @@ def main(in_fname, split_dataset, rdkit_factory, gen_tautomers, nconf, energy, r
         proc.join()
 
 
-if __name__ == '__main__':
-    parser = ArgumentParser(description='', formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--input', metavar='input.smi', nargs='+', type=str, required=True,
-                        help='input smi file or multiple files')
-    parser.add_argument('-s', '--split_input_file', action='store_true', default=True,
-                        help='if True will splited input dasets into active and inactive sets if False will not')
-    parser.add_argument('-f', '--rdkit_factory', metavar='features.fdef', default=None,
-                        help='text file with definition of pharmacophore features in RDKit format. If file name is not '
-                             'specified the default file from the script dir will be used. This option has '
-                             'a priority over smarts_features.')
-    parser.add_argument('-g', '--gen_tautomers', action='store_true', default=False,
-                        help='if True tautomers at pH 7.4 are generated using Chemaxon.')
-    parser.add_argument('-n', '--nconf', metavar='conf_number', default=100,
-                        help='number of generated conformers.')
-    parser.add_argument('-e', '--energy_cutoff', metavar='100', default=100,
-                        help='conformers with energy difference from the lowest one greater than the specified '
-                             'value will be discarded.')
-    parser.add_argument('-r', '--rms', metavar='rms_threshold', default=0.5,
-                        help='only conformers with RMS higher then threshold will be kept.')
-    parser.add_argument('-tol', '--tolerance', default=0,
-                        help='tolerance volume for the calculation of the stereo sign. If the volume of the '
-                             'tetrahedron created by four points less than tolerance then those points are considered '
-                             'lying on the same plane (flat; stereo sign is 0).')
-    parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
-                        help='number of cpus to use for processing of actives and inactives separately. ')
-
+def entry_point():
+    parser = create_parser()
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "input": in_fname = v
@@ -151,7 +155,6 @@ if __name__ == '__main__':
         if o == "tolerance": tolerance = float(v)
         if o == "ncpu": ncpu = int(v)
 
-
     main(in_fname=in_fname,
          split_dataset=split_dataset,
          rdkit_factory=rdkit_factory,
@@ -161,3 +164,7 @@ if __name__ == '__main__':
          rms=rms,
          tolerance=tolerance,
          ncpu=ncpu)
+
+
+if __name__ == '__main__':
+    entry_point()
