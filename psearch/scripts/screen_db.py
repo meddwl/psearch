@@ -17,6 +17,31 @@ Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['id', 'fp', 'pharmacophore'])
 
 
+def create_parser():
+    parser = argparse.ArgumentParser(description='Screen SQLite DB with compounds against pharmacophore queries.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-d', '--dbname', metavar='input_active.db, input_inactive.db', type=str, required=True,
+                        help='input SQLite database with generated conformers.')
+    parser.add_argument('-q', '--query', metavar='model.pma', required=True, type=str, nargs='+',
+                        help='pharmacophore model or models or a directory path. If a directory is specified all '
+                             'pma- and xyz-files will be used for screening as pharmacophore models.')
+    parser.add_argument('-o', '--output', required=True, type=str,
+                        help='path to an output text (.txt) file which will store names of compounds fit the model(s). '
+                             'If input_sdf argument is specified the output should be an sdf file (.sdf) to store '
+                             'conformers fitted to a model. In the case multiple models were supplied this '
+                             'should be path to a directory where output files will be created to store '
+                             'screening results. Type of the output is recognized by file extension. '
+                             'Existed output files will be overwritten.')
+    parser.add_argument('--input_sdf', metavar='input.sdf', default=None, type=str,
+                        help='sdf file with conformers used for creation of SQLite DB. Should be specified if '
+                             'conformers fitted to model should be returned.')
+    parser.add_argument('--conf', action='store_true', default=False,
+                        help='return all conformers matches as separate hits in a hit list.')
+    parser.add_argument('-c', '--ncpu', metavar='INTEGER', default=1, type=int,
+                        help='number of cores to use.')
+    return parser
+
+
 def get_bin_step(db_fname):
     connection = sqlite3.connect(db_fname)
     cur = connection.cursor()
@@ -151,28 +176,7 @@ def screen_db(db_fname, queries, output, input_sdf, match_first_conf, ncpu):
 
 
 def entry_point():
-    parser = argparse.ArgumentParser(description='Screen SQLite DB with compounds against pharmacophore queries.',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--dbname', metavar='input_active.db, input_inactive.db', type=str, required=True,
-                        help='input SQLite database with generated conformers.')
-    parser.add_argument('-q', '--query', metavar='model.pma', required=True, type=str, nargs='+',
-                        help='pharmacophore model or models or a directory path. If a directory is specified all '
-                             'pma- and xyz-files will be used for screening as pharmacophore models.')
-    parser.add_argument('-o', '--output', required=True, type=str,
-                        help='path to an output text (.txt) file which will store names of compounds fit the model(s). '
-                             'If input_sdf argument is specified the output should be an sdf file (.sdf) to store '
-                             'conformers fitted to a model. In the case multiple models were supplied this '
-                             'should be path to a directory where output files will be created to store '
-                             'screening results. Type of the output is recognized by file extension. '
-                             'Existed output files will be overwritten.')
-    parser.add_argument('--input_sdf', metavar='input.sdf', default=None, type=str,
-                        help='sdf file with conformers used for creation of SQLite DB. Should be specified if '
-                             'conformers fitted to model should be returned.')
-    parser.add_argument('--conf', action='store_true', default=False,
-                        help='return all conformers matches as separate hits in a hit list.')
-    parser.add_argument('-c', '--ncpu', metavar='INTEGER', default=1, type=int,
-                        help='number of cores to use.')
-
+    parser = create_parser()
     args = parser.parse_args()
 
     screen_db(db_fname=args.dbname,
