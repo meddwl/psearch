@@ -40,7 +40,6 @@ if __name__ == '__main__':
     parser.add_argument('-oi', '--out_inact', metavar='inactive.smi', required=True,
                         help='output SMILES file name for inactive compounds.')
 
-
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "in": in_fname = v
