@@ -1,21 +1,21 @@
 import setuptools
 from os import path
-import pmapper
+import psearch
 
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setuptools.setup(
-    name="pmapper",
-    version=pmapper.__version__,
-    author="Pavel Polishchuk",
-    author_email="pavel_polishchuk@ukr.net",
-    description="pmapper: 3D pharmacophore hashes and fingerprints",
+    name="psearch",
+    version=psearch.__version__,
+    author="Alina Kutlushina, Pavel Polishchuk",
+    author_email="alina.kutlushina@pharminnotech.com, pavel_polishchuk@ukr.net",
+    description="PSearch: ligand-based pharmacophore modeling and screening",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/DrrDom/pmapper",
-    packages=['pmapper'],
+#######    url="https://github.com/DrrDom/pmapper",
+    packages=['psearch'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
@@ -25,10 +25,9 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     extras_require={
-        'rdkit': ['rdkit>=2017.09'],
     },
     install_require={
-        'networkx': ['networkx>=2'],
+        'pmapper': ['pmapper>=0.2'],
     },
     entry_points={'console_scripts':
                       ['get_pharm_counts = pmapper.get_pharm_counts:entry_point']},
