@@ -12,10 +12,9 @@ import argparse
 import sqlite3 as lite
 
 from rdkit import Chem
-from rdkit.Chem import ChemicalFeatures
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
 from multiprocessing import cpu_count, Pool
-from read_input import read_input
+from .read_input import read_input
 from pmapper.pharmacophore import Pharmacophore
 from pmapper.customize import load_smarts, load_factory
 from pmapper.utils import load_multi_conf_mol
@@ -218,7 +217,7 @@ def main_params(conformers_fname, out_fname, dbout_fname, bin_step, rewrite_db, 
         sys.stderr.write("\n")
 
 
-def main():
+def entry_point():
     parser = argparse.ArgumentParser(description='Create DB with pharmacophore representation of input compound '
                                                  'library.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--input', metavar='conformers.sdf', required=False, default=None,
@@ -311,4 +310,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    entry_point()
