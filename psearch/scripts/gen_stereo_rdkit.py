@@ -13,7 +13,7 @@ from rdkit.Chem import AllChem
 from itertools import product
 from copy import deepcopy
 from multiprocessing import Pool, cpu_count
-from read_input import read_input
+from .read_input import read_input
 
 
 def prep_input(fname, id_field_name, tetrahedral, double_bond, max_undef):
@@ -197,10 +197,9 @@ def main_params(in_fname, out_fname, tetrahedral, double_bond, max_undef, id_fie
         
     if verbose:
         sys.stderr.write("\n")
-        
 
 
-def main():
+def entry_point():
 
     parser = argparse.ArgumentParser(description='Generation of stereoisomers with RDKit.')
     parser.add_argument('-i', '--input', metavar='input.sdf', required=True,
@@ -244,4 +243,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    entry_point()
