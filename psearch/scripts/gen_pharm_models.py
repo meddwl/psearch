@@ -15,6 +15,31 @@ from collections import defaultdict
 from pmapper.pharmacophore import Pharmacophore
 
 
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description='ilter out duplicated hash-stereo pair for each compound ID (without stereo)')
+    parser.add_argument('-adb', '--in_active_database', metavar='active.db', required=True,
+                        help='input SQL database file with active compounds')
+    parser.add_argument('-idb', '--in_inactive_database', metavar='inactive.db', required=True,
+                        help='input SQL database file with active compounds')
+    parser.add_argument('-ats', '--in_active_trainset', metavar='active_training_set.txt', required=True,
+                        help='txt file with information adout active models: '
+                             'model, hash, stereo, nact, ninact, nact/ninact, conf_id, feature_ids')
+    parser.add_argument('-its', '--in_inactive_trainset', metavar='inactive_training_set.txt', required=True,
+                        help='txt file with information adout active models: '
+                             'model, hash, stereo, nact, ninact, nact/ninact, conf_id, feature_ids')
+    parser.add_argument('-o', '--output_path', metavar='output/path', required=False, default=None,
+                        help='output path to the models of pharmacophores. '
+                             'If None, the path will be generated automatically.')
+    parser.add_argument('-tol', '--tolerance', default=0,
+                        help='tolerance volume for the calculation of the stereo sign. If the volume of the '
+                             'tetrahedron created by four points less than tolerance then those points are considered '
+                             'lying on the same plane (flat; stereo sign is 0).')
+    parser.add_argument('-l', '--lower', default=4,
+                        help='number of features of input models')
+    return parser
+
+
 def _keep_best_models(df, df_sub_act, df_sub_inact, df_ph_act, df_ph_inact, save_files):
     df_sub_act = pd.merge(df_sub_act, df[['hash']], on='hash', how='inner').reset_index(drop=True)
     df_ph_act = pd.merge(df_ph_act, df_sub_act[['conf_id']].drop_duplicates(subset=['conf_id']), on='conf_id',
@@ -216,29 +241,8 @@ def gen_pharm_models(in_adb, in_indb, act_trainset, inact_trainset, out_pma, tol
     return out_pma, lower
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='ilter out duplicated hash-stereo pair for each compound ID (without stereo)')
-    parser.add_argument('-adb', '--in_active_database', metavar='active.db', required=True,
-                        help='input SQL database file with active compounds')
-    parser.add_argument('-idb', '--in_inactive_database', metavar='inactive.db', required=True,
-                        help='input SQL database file with active compounds')
-    parser.add_argument('-ats', '--in_active_trainset', metavar='active_training_set.txt', required=True,
-                        help='txt file with information adout active models: '
-                             'model, hash, stereo, nact, ninact, nact/ninact, conf_id, feature_ids')
-    parser.add_argument('-its', '--in_inactive_trainset', metavar='inactive_training_set.txt', required=True,
-                        help='txt file with information adout active models: '
-                             'model, hash, stereo, nact, ninact, nact/ninact, conf_id, feature_ids')
-    parser.add_argument('-o', '--output_path', metavar='output/path', required=False, default=None,
-                        help='output path to the models of pharmacophores. '
-                             'If None, the path will be generated automatically.')
-    parser.add_argument('-tol', '--tolerance', default=0,
-                        help='tolerance volume for the calculation of the stereo sign. If the volume of the '
-                             'tetrahedron created by four points less than tolerance then those points are considered '
-                             'lying on the same plane (flat; stereo sign is 0).')
-    parser.add_argument('-l', '--lower', default=4,
-                        help='number of features of input models')
-
+def entry_point():
+    parser = create_parser()
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "in_active_database": adb = v
@@ -259,3 +263,7 @@ if __name__ == '__main__':
                      out_pma=out_pma,
                      tolerance=tolerance,
                      lower=lower)
+
+
+if __name__ == '__main__':
+    entry_point()
