@@ -13,8 +13,8 @@ def main(in_fname, out_act_fname, out_inact_fname):
     """
     split a dataset into an active and an inactive sets by status column
     :param in_fname: input .smi file
-    :param out_act_fname: path where wlii saved an active set
-    :param out_inact_fname: path where will saved an inactive set
+    :param out_act_fname: path where an active set will be saved
+    :param out_inact_fname: path where an inactive set will be saved
     :return: None
     """
 

@@ -21,9 +21,10 @@ def create_parser():
     parser.add_argument('-idb', '--input_inactive_db', metavar='input.db', required=True,
                         help='SQLite DB with inactive pharmacophores (feature coordinates).')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
-                        help='1 - form a training set by Stategy 1,'
-                             '2 - form a training set by Stategy 2,'
-                             '1 2 - form a training sets by Stategy 1 and Stategy 2,')
+                        help='1 - form a training set by Strategy 1 (a single training set from centroids of '
+                             'individual clusters), '
+                             '2 - form a training set by Strategy 2 (separate training set per each cluster), '
+                             '1 2 - form a training sets by Strategy 1 and Strategy 2,')
     parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', nargs='+', type=str, default=None,
                         help='If None, the path will be generated automatically. ')
     parser.add_argument('-pma', '--path_pma', metavar='path/pma/files', default=None,

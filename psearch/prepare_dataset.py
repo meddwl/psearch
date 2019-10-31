@@ -21,7 +21,7 @@ def create_parser():
     parser.add_argument('-i', '--input', metavar='input.smi', nargs='+', type=str, required=True,
                         help='input smi file or multiple files')
     parser.add_argument('-s', '--split_input_file', action='store_true', default=True,
-                        help='if True will splited input dasets into active and inactive sets if False will not')
+                        help='if True will split input datasets into active and inactive sets if False will not')
     parser.add_argument('-f', '--rdkit_factory', metavar='features.fdef', default=None,
                         help='text file with definition of pharmacophore features in RDKit format. If file name is not '
                              'specified the default file from the script dir will be used. This option has '

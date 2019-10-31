@@ -17,16 +17,16 @@ from pmapper.pharmacophore import Pharmacophore
 
 def create_parser():
     parser = argparse.ArgumentParser(
-        description='ilter out duplicated hash-stereo pair for each compound ID (without stereo)')
+        description='Iteratively create ligand-based pharmacophore models.')
     parser.add_argument('-adb', '--in_active_database', metavar='active.db', required=True,
                         help='input SQL database file with active compounds')
     parser.add_argument('-idb', '--in_inactive_database', metavar='inactive.db', required=True,
                         help='input SQL database file with active compounds')
     parser.add_argument('-ats', '--in_active_trainset', metavar='active_training_set.txt', required=True,
-                        help='txt file with information adout active models: '
+                        help='txt file with information about active models: '
                              'model, hash, stereo, nact, ninact, nact/ninact, conf_id, feature_ids')
     parser.add_argument('-its', '--in_inactive_trainset', metavar='inactive_training_set.txt', required=True,
-                        help='txt file with information adout active models: '
+                        help='txt file with information about active models: '
                              'model, hash, stereo, nact, ninact, nact/ninact, conf_id, feature_ids')
     parser.add_argument('-o', '--output_path', metavar='output/path', required=False, default=None,
                         help='output path to the models of pharmacophores. '

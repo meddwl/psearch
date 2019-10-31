@@ -38,8 +38,8 @@ def main(act_mol, inact_mol, path_screen, out_path):
                                      'inactive':os.path.join(os.path.abspath(path_screen), 'inactive', ff)})
 
     with open(out_path, 'w') as f:
-        f.write('srtategy 1\t' + '\t'.join(map(str, cal_consensus(s1_models, act_mol, inact_mol))) + '\n')
-        f.write('srtategy 2\t' + '\t'.join(map(str, cal_consensus(s2_models, act_mol, inact_mol))) + '\n')
+        f.write('strategy 1\t' + '\t'.join(map(str, cal_consensus(s1_models, act_mol, inact_mol))) + '\n')
+        f.write('strategy 2\t' + '\t'.join(map(str, cal_consensus(s2_models, act_mol, inact_mol))) + '\n')
         f.write('all models\t' + '\t'.join(map(str, cal_consensus(s1_models + s2_models, act_mol, inact_mol))) + '\n')
 
 

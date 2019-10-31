@@ -23,10 +23,10 @@ There are two steps of pharmacophore model generation.
 python3 prepare_datatset.py -i $PROJECT_DIR/input.smi -l 6 -u 8 -c 4
 ```
 `-i` - path to the input file;  
-`-u` - treshold to define active compounds (compounds with `activity value >= threshold` are considered active);  
-`-l` - treshold to define inactive compounds (compounds with `activity value <= threshold` are considered inactive);  
+`-u` - threshold to define active compounds (compounds with `activity value >= threshold` are considered active);  
+`-l` - threshold to define inactive compounds (compounds with `activity value <= threshold` are considered inactive);  
 `-c` - number of CPUs to use.  
-There are other arguments available to tweak data set preparation. To get the full list of agruments run `python3 prepare_datatset.py -h`  
+There are other arguments available to tweak data set preparation. To get the full list of arguments run `python3 prepare_datatset.py -h`  
 
 2. Model building.  
 
