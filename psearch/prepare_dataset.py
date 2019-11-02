@@ -8,7 +8,6 @@ import os
 import sys
 import time
 
-from subprocess import Popen, PIPE
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from multiprocessing import Process
 
@@ -26,8 +25,6 @@ def create_parser():
                         help='text file with definition of pharmacophore features in RDKit format. If file name is not '
                              'specified the default file from the script dir will be used. This option has '
                              'a priority over smarts_features.')
-    parser.add_argument('-g', '--gen_tautomers', action='store_true', default=False,
-                        help='if True tautomers at pH 7.4 are generated using Chemaxon.')
     parser.add_argument('-n', '--nconf', metavar='conf_number', default=100,
                         help='number of generated conformers.')
     parser.add_argument('-e', '--energy_cutoff', metavar='100', default=100,
@@ -35,30 +32,15 @@ def create_parser():
                              'value will be discarded.')
     parser.add_argument('-r', '--rms', metavar='rms_threshold', default=0.5,
                         help='only conformers with RMS higher then threshold will be kept.')
-    parser.add_argument('-tol', '--tolerance', default=0,
-                        help='tolerance volume for the calculation of the stereo sign. If the volume of the '
-                             'tetrahedron created by four points less than tolerance then those points are considered '
-                             'lying on the same plane (flat; stereo sign is 0).')
     parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
                         help='number of cpus to use for processing of actives and inactives separately. ')
     return parser
 
 
-def generate_tautomers(input_fname, output_fname):
-    pipe = Popen(
-        'cxcalc -g tautomers -f sdf -n true -M true -P true -T true -H 7.4 %s > %s' % (input_fname, output_fname),
-        shell=True, stdout=PIPE, stderr=PIPE)
-    pipe.wait()
-
-
-def common(filenames, nconf, energy, rms, rdkit_factory, gen_tautomers, tolerance, ncpu, set_name):
+def common(filenames, nconf, energy, rms, rdkit_factory, ncpu, set_name):
     start = time.time()
 
-    if gen_tautomers:
-        generate_tautomers(filenames[0], filenames[1])
-        input_fname = filenames[1]
-    else:
-        input_fname = filenames[0]
+    input_fname = filenames[0]
 
     gen_stereo_rdkit.main_params(in_fname=input_fname,
                                  out_fname=filenames[2],
@@ -79,36 +61,29 @@ def common(filenames, nconf, energy, rms, rdkit_factory, gen_tautomers, toleranc
                                seed=-1,
                                verbose=True)
 
-    create_db.main_params(out_fname=None,
-                          dbout_fname=filenames[4],
+    create_db.main_params(dbout_fname=filenames[4],
                           smarts_features_fname=None, 
                           rdkit_factory=rdkit_factory,
                           conformers_fname=filenames[3],
                           bin_step=1,
                           rewrite_db=True,
-                          store_coords=True,
                           id_field_name=None,
                           stereo_id=True,
-                          fp=True,
-                          nohash=True,
                           verbose=True,
-                          ncpu=ncpu,
-                          tolerance=tolerance)
+                          ncpu=ncpu)
 
     sys.stderr.write('prepare {} dataset ({}s)'.format(set_name, time.time() - start))
 
 
-def main(in_fname, split_dataset, rdkit_factory, gen_tautomers, nconf, energy, rms, tolerance, ncpu):
+def main(in_fname, split_dataset, rdkit_factory, nconf, energy, rms, ncpu):
     """
     launches the entire cycle of data preprocessing: generation of stereoisomers, conformers and a database
     :param in_fname: input .smi file containing information about SMILES, compounds id and its activity status
     :param split_dataset: if True will splited input dasets into active and inactive sets else will not
     :param rdkit_factory: text file with definition of pharmacophore features in RDKit format.
-    :param gen_tautomers: if True will generate tautomers for every compounds else will not
     :param nconf: max number of generated conformers
     :param energy: conformers with energy difference from the lowest one greater than the specified value will be discarded.
     :param rms: only conformers with RMS higher then threshold will be kept.
-    :param tolerance: tolerance volume for the calculation of the stereo sign. (for more information read helper)
     :param ncpu: number of cpus to use for processing of actives and inactives separately.
     :return:
     """
@@ -133,7 +108,7 @@ def main(in_fname, split_dataset, rdkit_factory, gen_tautomers, nconf, energy, r
                    os.path.join(comm_path, '{}_conf.sdf'.format(nickname)),
                    os.path.join(comm_path, '{}.db'.format(nickname))]
         proc = Process(target=common, args=(list_ts, nconf, energy, rms, rdkit_factory,
-                                            gen_tautomers, tolerance, ncpu, nickname))
+                                            ncpu, nickname))
         procs.append(proc)
         proc.start()
 
@@ -148,21 +123,17 @@ def entry_point():
         if o == "input": in_fname = v
         if o == "split_input_file": split_dataset = v
         if o == "rdkit_factory": rdkit_factory = v
-        if o == "gen_tautomers": gen_tautomers = v
         if o == "nconf": nconf = int(v)
         if o == "energy_cutoff": energy = float(v)
         if o == "rms": rms = float(v) if v is not None else None
-        if o == "tolerance": tolerance = float(v)
         if o == "ncpu": ncpu = int(v)
 
     main(in_fname=in_fname,
          split_dataset=split_dataset,
          rdkit_factory=rdkit_factory,
-         gen_tautomers=gen_tautomers,
          nconf=nconf,
          energy=energy,
          rms=rms,
-         tolerance=tolerance,
          ncpu=ncpu)
 
 
