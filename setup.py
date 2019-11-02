@@ -26,9 +26,7 @@ setuptools.setup(
     python_requires='>=3.6',
     extras_require={
     },
-    install_require={
-        'pmapper': ['pmapper>=0.3'],
-    },
+    install_requires=['pmapper>=0.3'],
     entry_points={'console_scripts':
                       ['psearch = psearch.psearch:entry_point',
                        'prepare_dataset = psearch.prepare_dataset:entry_point',

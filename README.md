@@ -10,7 +10,7 @@ pip install psearch
 
 ## Dependency
 
-`pmapper >= 0.2`  
+`pmapper >= 0.3.1`
 
 ## Example
 
