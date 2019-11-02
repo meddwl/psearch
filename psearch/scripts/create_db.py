@@ -6,13 +6,11 @@
 
 import os
 import sys
-import pickle
 import marshal
 import argparse
 import sqlite3 as lite
 
 from rdkit import Chem
-from rdkit.Chem.Pharm2D.SigFactory import SigFactory
 from multiprocessing import cpu_count, Pool
 from .read_input import read_input
 from pmapper.pharmacophore import Pharmacophore
@@ -20,14 +18,9 @@ from pmapper.customize import load_smarts, load_factory
 from pmapper.utils import load_multi_conf_mol
 
 
-def create_tables(cursor, bin_step, smarts, store_coords, fp, nohash):
+def create_tables(cursor, bin_step, smarts):
     cursor.execute("CREATE TABLE conformers(conf_id INTEGER PRIMARY KEY AUTOINCREMENT, mol_name TEXT, "
-                   "mol_stereo_id TEXT)")
-    if not nohash:
-        cursor.execute("ALTER TABLE conformers ADD COLUMN ph_hash BLOB")
-        cursor.execute("ALTER TABLE conformers ADD COLUMN pharm_obj BLOB")
-    if fp:
-        cursor.execute("ALTER TABLE conformers ADD COLUMN fp BLOB")
+                   "mol_stereo_id TEXT, fp BLOB)")
     cursor.execute("CREATE INDEX mol_name_idx ON conformers(mol_name)")
     cursor.execute("CREATE TABLE settings(bin_step NUMERIC)")
     cursor.execute("INSERT INTO settings VALUES(?)", (bin_step, ))
@@ -36,31 +29,24 @@ def create_tables(cursor, bin_step, smarts, store_coords, fp, nohash):
         for k, values in smarts.items():
             for v in values:
                 cursor.execute("INSERT INTO smarts_features VALUES(?, ?)", (k, Chem.MolToSmarts(v)))
-    if store_coords:
-        cursor.execute("CREATE TABLE feature_coords(conf_id INTEGER, feature_label TEXT, "
-                       "x NUMERIC, y NUMERIC, z NUMERIC, "
-                       "FOREIGN KEY(conf_id) REFERENCES conformers(conf_id))")
+    cursor.execute("CREATE TABLE feature_coords(conf_id INTEGER, feature_label TEXT, "
+                   "x NUMERIC, y NUMERIC, z NUMERIC, "
+                   "FOREIGN KEY(conf_id) REFERENCES conformers(conf_id))")
 
 
-def insert_res_db(cur, res, store_coords, stereo_id):
-    for item in res:   # mol_name, hash, coords, fp, pharm_obj
+def insert_res_db(cur, res, stereo_id):
+    for item in res:   # mol_name, coords, fp
         if stereo_id:
             mol_name, mol_stereo_id = item[0].rsplit("_", 1)
         else:
             mol_name = item[0]
             mol_stereo_id = '0'
-        data = [mol_name, mol_stereo_id]
-        if item[1] is not None:
-            data.append(item[1])
-        if item[4] is not None:
-            data.append(item[4])
-        if item[3] is not None:
-            data.append(item[3])
-        cur.execute("INSERT INTO conformers VALUES(NULL, %s)" % ','.join(['?'] * len(data)), data)
-        if store_coords and item[2] is not None:
-            cur.execute("SELECT MAX(conf_id) FROM conformers")
-            conf_id = cur.fetchone()[0]
-            cur.executemany("INSERT INTO feature_coords VALUES (?, ?, ?, ?, ?)", ((conf_id, i[0], *i[1]) for i in item[2]))
+        data = [mol_name, mol_stereo_id, item[2]]
+        cur.execute("INSERT INTO conformers VALUES(NULL, ?, ?, ?)", data)
+        # store coords
+        cur.execute("SELECT MAX(conf_id) FROM conformers")
+        conf_id = cur.fetchone()[0]
+        cur.executemany("INSERT INTO feature_coords VALUES (?, ?, ?, ?, ?)", ((conf_id, i[0], *i[1]) for i in item[1]))
 
 
 def compress_db(cursor, store_coords):
@@ -86,20 +72,20 @@ def insert_res_txt(f, res, lines_set, stereo_id):
             lines_set.add(record)
 
 
-def prep_input(fname, id_field_name, smarts, bin_step, store_coords, multiconf, tolerance, fp, nohash):
+def prep_input(fname, id_field_name, smarts, bin_step, multiconf):
     if fname is None:
         read_iterator = read_input(fname, 'sdf', id_field_name, removeHs=False)
     else:
         read_iterator = read_input(fname, id_field_name=id_field_name, removeHs=False)
     for mol, mol_name in read_iterator:
-        yield mol, mol_name, smarts, bin_step, store_coords, multiconf, tolerance, fp, nohash
+        yield mol, mol_name, smarts, bin_step, multiconf
 
 
 def map_process_mol(args):
     return process_mol(*args)
 
 
-def process_mol(mol, mol_name, smarts, bin_step, store_coords, multiconf, tolerance, fp, nohash):
+def process_mol(mol, mol_name, smarts, bin_step, multiconf):
     # process_factory is within process scope only
     if multiconf:
         if 'process_factory' in globals():
@@ -108,11 +94,9 @@ def process_mol(mol, mol_name, smarts, bin_step, store_coords, multiconf, tolera
             ps = load_multi_conf_mol(mol, smarts_features=smarts, bin_step=bin_step)
         output = []
         for p in ps:
-            coords = p.get_feature_coords() if store_coords else None
-            hash_md5 = p.get_signature_md5(tol=tolerance) if not nohash else None
-            pharm_obj = pickle.dumps(p) if not nohash else None
-            fp_bin = marshal.dumps(p.get_fp()) if fp else None
-            output.append((mol_name, hash_md5, coords, fp_bin, pharm_obj))
+            coords = p.get_feature_coords()
+            fp_bin = marshal.dumps(p.get_fp())
+            output.append((mol_name, coords, fp_bin))
         return output
     else:
         p = Pharmacophore(bin_step, cached=True)
@@ -120,67 +104,49 @@ def process_mol(mol, mol_name, smarts, bin_step, store_coords, multiconf, tolera
             p.load_from_feature_factory(mol, process_factory)
         elif smarts:
             p.load_from_smarts(mol, smarts)
-        coords = p.get_feature_coords() if store_coords else None
-        hash_md5 = p.get_signature_md5(tol=tolerance) if not nohash else None
-        pharm_obj = pickle.dumps(p) if not nohash else None
-        fp_bin = marshal.dumps(p.get_fp()) if fp else None
-        return [(mol_name, hash_md5, coords, fp_bin, pharm_obj)]
+        coords = p.get_feature_coords()
+        fp_bin = marshal.dumps(p.get_fp())
+        return [(mol_name, coords, fp_bin)]
 
 
-def pool_init(fdef_fname, bin_step):
+def pool_init(fdef_fname):
     global process_factory
-    global sig_factory
     process_factory = load_factory(fdef_fname)
-    # process_factory = ChemicalFeatures.BuildFeatureFactory(fdef_fname) if fdef_fname else None
-    sig_factory = SigFactory(process_factory, minPointCount=2, maxPointCount=3, trianglePruneBins=False)
-    q = []
-    i = bin_step
-    j = 0
-    while i < 20:
-        q.append((j, i))
-        j = i
-        i += bin_step
-    sig_factory.SetBins(q)
-    sig_factory.Init()
 
 
-def main_params(conformers_fname, out_fname, dbout_fname, bin_step, rewrite_db, store_coords, id_field_name, stereo_id,
-                smarts_features_fname, rdkit_factory, fp, nohash, ncpu, tolerance, verbose):
-
-    if out_fname is None and dbout_fname is None:
-        raise ValueError("You should specify at least one of possible outputs: text file or SQLite DB.")
+def main_params(conformers_fname, dbout_fname, bin_step, rewrite_db, id_field_name, stereo_id,
+                smarts_features_fname, rdkit_factory, ncpu, verbose):
 
     # check DB existence
     if dbout_fname is not None and os.path.isfile(dbout_fname):
         if rewrite_db:
             os.remove(dbout_fname)
         else:
-            raise FileExistsError("DB exists. To rewrite it add -r key to the command line call.")
+            raise FileExistsError("DB exists. To rewrite it add -r key to the command line call or remove "
+                                  "database manually.")
 
     # load smarts features
-    smarts = None
-    if smarts_features_fname and rdkit_factory is None:
-        smarts = load_smarts(smarts_features_fname)
+    if rdkit_factory is None:
+        if smarts_features_fname is not None:
+            smarts = load_smarts(smarts_features_fname)
+        else:
+            smarts = load_smarts()
+    else:
+        smarts = None
 
     multiconf = conformers_fname.lower().endswith('.pkl')
 
     # open db
-    if dbout_fname is not None:
-        conn = lite.connect(dbout_fname)
-        cur = conn.cursor()
-        create_tables(cur, bin_step, smarts, store_coords, fp, nohash)
-
-    # open text file
-    if out_fname is not None and not nohash:
-        ftxt = open(out_fname, 'wt')
-        ftxt.write("mol_id\tstereo_id\thash\n")
+    conn = lite.connect(dbout_fname)
+    cur = conn.cursor()
+    create_tables(cur, bin_step, smarts)
 
     nprocess = max(min(ncpu, cpu_count()), 1)
 
     if smarts:
         p = Pool(nprocess)
     else:
-        p = Pool(nprocess, initializer=pool_init, initargs=[rdkit_factory, bin_step])
+        p = Pool(nprocess, initializer=pool_init, initargs=[rdkit_factory])
 
     lines_set = set()
 
@@ -189,15 +155,13 @@ def main_params(conformers_fname, out_fname, dbout_fname, bin_step, rewrite_db, 
     try:
         for i, res in enumerate(p.imap_unordered(map_process_mol,
                                                  prep_input(conformers_fname, id_field_name, smarts, bin_step,
-                                                            store_coords, multiconf, tolerance, fp, nohash),
+                                                            multiconf),
                                                  chunksize=10), 1):
             counter += len(res)
             if dbout_fname is not None:
-                insert_res_db(cur, res, store_coords, stereo_id)
+                insert_res_db(cur, res, stereo_id)
                 if i % 1000 == 0:
                     conn.commit()
-            if out_fname is not None and not nohash:
-                insert_res_txt(ftxt, res, lines_set, stereo_id)
             if verbose and i % 100 == 0:
                 sys.stderr.write('\rprocessed %i molecules and %i conformers/pharmacophores' % (i, counter))
                 sys.stderr.flush()
@@ -210,8 +174,6 @@ def main_params(conformers_fname, out_fname, dbout_fname, bin_step, rewrite_db, 
         p.close()
         if dbout_fname is not None:
             conn.close()
-        if out_fname is not None:
-            ftxt.close()
 
     if verbose:
         sys.stderr.write("\n")
@@ -226,27 +188,18 @@ def entry_point():
                              'Alternatively PKL files can be used as input, which are stored pickled tuples of '
                              'multi-conformer molecules and their names. '
                              'If omitted STDIN will be parsed as SDF file.')
-    parser.add_argument('-o', '--out', metavar='output.txt', required=False, default=None,
-                        help='output text file, which will contain: mol_id, stereo_id, pharm_hash, stereo_sign. '
-                             'Coordinates will not be stored in text file.')
-    parser.add_argument('-d', '--dbout', metavar='output.db', required=False, default=None,
+    parser.add_argument('-d', '--dbout', metavar='output.db', required=True,
                         help='output DB SQLite file.')
     parser.add_argument('-b', '--bin_step', default=1,
                         help='binning step. Default: 1.')
-    parser.add_argument('-t', '--tolerance', default=0,
-                        help='tolerance volume for the calculation of the stereo sign. If the volume of the '
-                             'tetrahedron created by four points less than tolerance then those points are considered '
-                             'lying on the same plane (flat; stereo sign is 0). Default: 0.')
-    parser.add_argument('-s', '--smarts_features', metavar='smarts.txt', default=None, nargs='?',
-                        const=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.txt'),
+    parser.add_argument('-s', '--smarts_features', metavar='smarts.txt', default=None,
                         help='text file with definition of pharmacophore features. Tab-separated two columns: '
-                             'first - SMARTS, second - feature name. If file name is not specified the default file '
-                             'from the script dir will be used.')
-    parser.add_argument('--rdkit_factory', metavar='features.fdef', default=None, nargs='?',
-                        const=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef'),
+                             'first - SMARTS, second - feature name. If file name is not specified the default SMARTS '
+                             'patterns will be used.')
+    parser.add_argument('--rdkit_factory', metavar='features.fdef', default=None,
                         help='text file with definition of pharmacophore features in RDKit format. If file name is not '
-                             'specified the default file from the script dir will be used. This option has '
-                             'a priority over smarts_features.')
+                             'specified the default SMARTS patterns will be used. This option has a priority over '
+                             'smarts_features if both were specified.')
     parser.add_argument('-f', '--id_field_name', metavar='field_name', default=None,
                         help='field name of compound ID (sdf). If omitted for sdf molecule titles will be used or '
                              'auto-generated names. Please note if you use SDTIN as input, molecule names should be '
@@ -256,14 +209,6 @@ def entry_point():
                              '(e.g. MolName_1, Mol_name_2, etc). Then different stereoisomers will be considered '
                              'together when duplicated pharmacophores will be removed. Otherwise each stereoisomer '
                              'will be treated as an individual compound.')
-    parser.add_argument('--save_coords', action='store_true', default=False,
-                        help='store coordinates of features for each conformer to retrieve full pharmacophore if '
-                             'needed. Coordinates can be stored only in DB output. This will enlarge your database.')
-    parser.add_argument('--fp', action='store_true', default=False,
-                        help='calculate pseudo-3D pharmacophore RDKit fingerprints to speed up screening. '
-                             'Works only if rdkit_factory is supplied.')
-    parser.add_argument('--nohash', action='store_true', default=False,
-                        help='do not generate pharmacophore hashes.')
     parser.add_argument('-r', '--rewrite', action='store_true', default=False,
                         help='rewrite existed DB.')
     parser.add_argument('-c', '--ncpu', default=1,
@@ -274,7 +219,6 @@ def entry_point():
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "input": conformers_fname = v
-        if o == "out": out_fname = v
         if o == "dbout": dbout_fname = v
         if o == "bin_step": bin_step = float(v)
         if o == "smarts_features": smarts_features = v
@@ -282,31 +226,19 @@ def entry_point():
         if o == "rewrite": rewrite_db = v
         if o == "verbose": verbose = v
         if o == "ncpu": ncpu = int(v)
-        if o == "save_coords": store_coords = v
         if o == "stereo_id": stereo_id = v
-        if o == "tolerance": tolerance = float(v)
         if o == "rdkit_factory": rdkit_factory = v
-        if o == "fp": fp = v
-        if o == "nohash": nohash = v
 
-    # if rdkit_factory is None and smarts_features is None:
-    #     rdkit_factory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'smarts_features.fdef')
-
-    main_params(out_fname=out_fname,
-                dbout_fname=dbout_fname,
+    main_params(dbout_fname=dbout_fname,
                 smarts_features_fname=smarts_features,
                 rdkit_factory=rdkit_factory,
                 conformers_fname=conformers_fname,
                 bin_step=bin_step,
                 rewrite_db=rewrite_db,
-                store_coords=store_coords,
                 id_field_name=id_field_name,
                 stereo_id=stereo_id,
-                fp=fp,
-                nohash=nohash,
                 verbose=verbose,
-                ncpu=ncpu,
-                tolerance=tolerance)
+                ncpu=ncpu)
 
 
 if __name__ == '__main__':
