@@ -14,7 +14,7 @@ setuptools.setup(
     description="PSearch: ligand-based pharmacophore modeling and screening",
     long_description=long_description,
     long_description_content_type="text/markdown",
-#######    url="https://github.com/DrrDom/pmapper",
+    url="https://github.com/meddwl/psearch",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -27,11 +27,12 @@ setuptools.setup(
     extras_require={
     },
     install_require={
-        'pmapper': ['pmapper>=0.2'],
+        'pmapper': ['pmapper>=0.3'],
     },
     entry_points={'console_scripts':
                       ['psearch = psearch.psearch:entry_point',
                        'prepare_dataset = psearch.prepare_dataset:entry_point',
+                       'prepare_db = psearch.prepare_db:entry_point',
                        'gen_stereo = psearch.scripts.gen_stereo_rdkit:entry_point',
                        'gen_conf = psearch.scripts.gen_conf_rdkit:entry_point',
                        'create_db = psearch.scripts.create_db:entry_point',
