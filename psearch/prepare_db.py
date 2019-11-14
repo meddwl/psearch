@@ -22,6 +22,8 @@ def create_parser():
                         help='input file of SMI or SDF formats, recognized by extension.')
     parser.add_argument('-o', '--output', metavar='output.db', type=os.path.abspath, required=True,
                         help='input file of SMI or SDF formats, recognized by extension.')
+    parser.add_argument('-b', '--bin_step', default=1, type=float,
+                        help='binning step. Default: 1.')
     parser.add_argument('-u', '--max_undef', metavar='INTEGER', required=False, default=-1, type=int,
                         help='maximum allowed number of unspecified stereocenters and/or double bonds. '
                              'if compound contains greater number of them it will be discarded. '
@@ -97,7 +99,7 @@ def entry_point():
                           smarts_features_fname=args.smarts_features,
                           rdkit_factory=args.rdkit_factory,
                           conformers_fname=fname_conf,
-                          bin_step=1,
+                          bin_step=args.bin_step,
                           rewrite_db=True,
                           id_field_name=None,
                           stereo_id=True,
