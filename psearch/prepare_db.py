@@ -9,7 +9,7 @@ import sys
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-from .scripts import gen_stereo_rdkit, gen_conf_rdkit, split
+from .scripts import gen_stereo_rdkit, gen_conf_rdkit
 from .scripts import create_db
 
 
@@ -102,7 +102,7 @@ def entry_point():
                           bin_step=args.bin_step,
                           rewrite_db=True,
                           id_field_name=None,
-                          stereo_id=True,
+                          stereo_id=args.max_undef != 0,
                           verbose=args.verbose,
                           ncpu=args.ncpu)
 
