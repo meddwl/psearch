@@ -39,9 +39,6 @@ def create_parser():
                         help='tolerance used for calculation of a stereoconfiguration sign.')
     parser.add_argument('-thr', '--threshold_clust', default=0.4,
                         help='threshold for сlustering data by Butina algorithm')
-    parser.add_argument('-f', '--min_features', metavar='INTEGER', default=None, type=int,
-                        help='minimum number of features with distinct coordinates in models. '
-                             'Default: all models will be screened.')
     parser.add_argument('--fdef', metavar='smarts.fdef', default=None,
                         help='fdef-file with pharmacophore feature definition.')
     parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
@@ -61,7 +58,7 @@ def creating_pharmacophore(in_adb, in_indb, files_ats, files_ints, path_pma, tol
         sys.stderr.write("Error: no folder with pma files.\nFor {},\n{}\n\n".format(files_ats, files_ints))
 
 
-def pharmacophore_validation(mol_act, mol_inact, in_adb, in_indb, path_ts, path_pma, path_screen, min_features, ncpu):
+def pharmacophore_validation(mol_act, mol_inact, in_adb, in_indb, path_ts, path_pma, path_screen, ncpu):
     screen_act = os.path.join(path_screen, 'active')
     if not os.path.exists(screen_act):
         os.makedirs(screen_act)
@@ -70,10 +67,10 @@ def pharmacophore_validation(mol_act, mol_inact, in_adb, in_indb, path_ts, path_
     if not os.path.exists(screen_inact):
         os.makedirs(screen_inact)
 
-    screen_db(db_fname=in_adb, queries=path_pma, output=screen_act, input_sdf=None,
-              match_first_conf=True, min_features=min_features, ncpu=ncpu)
-    screen_db(db_fname=in_indb, queries=path_pma, output=screen_inact, input_sdf=None,
-              match_first_conf=True, min_features=min_features, ncpu=ncpu)
+    screen_db(db_fname=in_adb, queries=[path_pma], output=screen_act, input_sdf=None,
+              match_first_conf=True, min_features=None, ncpu=ncpu)
+    screen_db(db_fname=in_indb, queries=[path_pma], output=screen_inact, input_sdf=None,
+              match_first_conf=True, min_features=None, ncpu=ncpu)
 
     out_external_stat = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_adb)))[0], 'results',
                                      'external_statistics.txt')
@@ -90,7 +87,6 @@ def pharmacophore_validation(mol_act, mol_inact, in_adb, in_indb, path_ts, path_
 
 
 def creating_pharmacophore_mp(items):
-    new = creating_pharmacophore
     return creating_pharmacophore(*items)
     
     
@@ -100,7 +96,7 @@ def get_items(in_adb, in_indb, list_ts, path_pma, tol, upper):
 
 
 def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_ts, path_pma, path_screen,
-         tol, upper, min_features, fdef_fname, threshold_clust, ncpu):
+         tol, upper, fdef_fname, threshold_clust, ncpu):
 
     p = Pool(ncpu)
 
@@ -146,7 +142,6 @@ def main(mol_act, mol_inact, in_adb, in_indb, mode_train_set, path_ts, path_pma,
                              path_ts=path_ts,
                              path_pma=path_pma,
                              path_screen=path_screen,
-                             min_features=min_features,
                              ncpu=ncpu)
 
 
@@ -165,7 +160,6 @@ def entry_point():
         if o == "tolerance": tol = int(v)
         if o == "upper": upper = int(v)
         if o == "threshold_clust": threshold_clust = float(v)
-        if o == "min_features": min_features = int(v) if v is not None else None
         if o == "fdef": fdef_fname = v
         if o == "ncpu": ncpu = int(v)
 
@@ -196,7 +190,6 @@ def entry_point():
          tol=tol,
          upper=upper,
          threshold_clust=threshold_clust,
-         min_features=min_features,
          fdef_fname=fdef_fname,
          ncpu=ncpu)
 
