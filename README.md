@@ -20,7 +20,8 @@ There are two steps of pharmacophore model generation.
 
 1. Data set preparation. 
 
-It takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, `activity value` without header. It splits the input on active and inactive subsets, generates stereoisomers and conformers, creates databases of active and inactive compounds with labeled pharmacophore features.
+It takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, `activity` without headers. The division into active and inactive connections will be carried out using the labels `active` and `inactive`, respectively, which are indicated in the column `activity`. It splits the input on active and inactive subsets, generates stereoisomers and conformers, creates databases of active and inactive compounds with labeled pharmacophore features.
+
 ```python
 prepare_datatset -i $PROJECT_DIR/input.smi -c 4
 ```
@@ -30,13 +31,14 @@ There are other arguments available to tweak data set preparation. To get the fu
 
 If you need to prepare a datatset and you don't need to split the input on active and inactive subsets you can use the command below. 
 It takes as input a tab-separated SMILES file containing `SMILES`, `compound id`. It generates stereoisomers and conformers, creates databases of compounds with labeled pharmacophore features. 
+
 ```python
-prepare_db -i $PROJECT_DIR/input.smi -c 4 -v
+prepare_db -i $PROJECT_DIR/input.smi -o $PROJECT_DIR/output.db -c 4 -v
 ```
 `-i` - path to the input file;  
 `-c` - number of CPUs to use. 
 `-v` - print progress 
-There are other arguments available to tweak data set preparation. To get the full list of arguments run `prepare_datatset -h`  
+There are other arguments available to tweak data set preparation. To get the full list of arguments run `prepare_db -h`  
 
 
 2. Model building.  
@@ -52,17 +54,19 @@ There are other arguments available to tweak data set preparation. To get the fu
 
 ### Virtual screening with pharmacophore models 
 
-1. Data set preparation. It takes as input a tab-separated SMILES file containing `SMILES`, `compound id`. It generates stereoisomers and conformers, creates databases of compounds with labeled pharmacophore features.
+1. Data set preparation. 
+It takes as input a tab-separated SMILES file containing `SMILES`, `compound id`. It generates stereoisomers and conformers, creates databases of compounds with labeled pharmacophore features.
 
 ```python
-prepare_db -i $PROJECT_DIR/input.smi -c 4 -v
+prepare_db -i $PROJECT_DIR/input.smi -o $PROJECT_DIR/output.db -c 4 -v
 ```
 `-i` - path to the input file;  
 `-c` - number of CPUs to use;
 `-v` - print progress 
-There are other arguments available to tweak data set preparation. To get the full list of arguments run `prepare_datatset -h`  
+There are other arguments available to tweak data set preparation. To get the full list of arguments run `prepare_db -h`  
 
 2. Model building.  
+It takes as input a created database of compounds with labeled pharmacophore features.
 
 ```python
 screen_db -d $PROJECT_DIR/databased.db -q $PROJECT_DIR/models/ -o $PROJECT_DIR/screen/ -c 4
