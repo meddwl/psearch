@@ -13,25 +13,27 @@ from scripts.select_training_set_rdkit import trainingset_formation
 
 def create_parser():
     parser = argparse.ArgumentParser(description='Pharmacophore model building', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-ma', '--active_mol', metavar='active.smi', required=True,
+    parser.add_argument('-p', '--project_dir', default=None,
+                        help='path to a project dir. It will work if you used the standart file paths')
+    parser.add_argument('-ma', '--active_mol', metavar='active.smi', default=None,
                         help='.smi file with active molecules.')
-    parser.add_argument('-mi', '--inactive_mol', metavar='inactive.smi', required=True,
+    parser.add_argument('-mi', '--inactive_mol', metavar='inactive.smi', default=None,
                         help='.smi file with inactive molecules.')
-    parser.add_argument('-adb', '--input_active_db', metavar='input.db', required=True,
+    parser.add_argument('-adb', '--input_active_db', metavar='input.db', default=None,
                         help='SQLite DB with active pharmacophores (feature coordinates).')
-    parser.add_argument('-idb', '--input_inactive_db', metavar='input.db', required=True,
+    parser.add_argument('-idb', '--input_inactive_db', metavar='input.db', default=None,
                         help='SQLite DB with inactive pharmacophores (feature coordinates).')
-    parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
-                        help='1 - form a training set by Strategy 1 (a single training set from centroids of '
-                             'individual clusters), '
-                             '2 - form a training set by Strategy 2 (separate training set per each cluster), '
-                             '1 2 - form a training sets by Strategy 1 and Strategy 2,')
     parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', nargs='+', type=str, default=None,
                         help='If None, the path will be generated automatically. ')
     parser.add_argument('-pma', '--path_pma', metavar='path/pma/files', default=None,
                         help='If None, the path will be generated automatically. ')
     parser.add_argument('-ps', '--path_screen', metavar='path/pma/files', default=None,
                         help='If None, the path will be generated automatically. ')
+    parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
+                        help='1 - form a training set by Strategy 1 (a single training set from centroids of '
+                             'individual clusters), '
+                             '2 - form a training set by Strategy 2 (separate training set per each cluster), '
+                             '1 2 - form a training sets by Strategy 1 and Strategy 2')
     parser.add_argument('-u', '--upper', metavar='6', type=int, default=1000,
                         help='upper number of features used for generation of subpharmacophores.'
                              'if None well generated pharmacophores with as many features as possible')
@@ -149,6 +151,7 @@ def entry_point():
     parser = create_parser()
     args = vars(parser.parse_args())
     for o, v in args.items():
+        if o == "project_dir": project_dir = v
         if o == "active_mol": active_mol = v
         if o == "inactive_mol": inactive_mol = v
         if o == "input_active_db": in_adb = v
@@ -163,19 +166,33 @@ def entry_point():
         if o == "fdef": fdef_fname = v
         if o == "ncpu": ncpu = int(v)
 
+    if project_dir is not None:
+        active_mol = os.path.join(project_dir, 'compounds', 'active.smi')
+        inactive_mol = os.path.join(project_dir, 'compounds', 'inactive.smi')
+        in_adb = os.path.join(project_dir, 'compounds', 'active.db')
+        in_indb = os.path.join(project_dir, 'compounds', 'inactive.db')
+    else:
+        if active_mol is None or inactive_mol is None or in_adb is None or in_indb is None:
+            print('If project dir was not set, active_mol, inactive_mol, input_active_db, input_inactive_db arguments '
+                  'must be specified. I am not a wizard yet, I can not guess the paths to your files')
+            exit()
+
+    if project_dir is None:
+        project_dir = os.path.split(os.path.dirname(os.path.abspath(in_adb)))[0]
+
     # creating paths for training sets, pma files and screening files
     if not path_ts:
-        path_ts = os.path.join(os.path.split(os.path.dirname(os.path.abspath(in_adb)))[0], 'trainset')
+        path_ts = os.path.join(project_dir, 'trainset')
         if not os.path.isdir(path_ts):
             os.makedirs(path_ts)
 
     if not path_pma:
-        path_pma = os.path.join(os.path.split(os.path.dirname(in_adb))[0], 'models')
+        path_pma = os.path.join(project_dir, 'models')
         if not os.path.isdir(path_pma):
             os.makedirs(path_pma)
 
     if not path_screen:
-        path_screen = os.path.join(os.path.split(path_pma)[0], 'screen')
+        path_screen = os.path.join(project_dir, 'screen')
         if not os.path.isdir(path_screen):
             os.makedirs(path_screen)
 
