@@ -20,7 +20,7 @@ There are two steps of pharmacophore model generation.
 
 1. Data set preparation. 
 
-It takes as input a comma-separated SMILES file containing `SMILES`, `compound id`, `activity value`. It splits the input on active and inactive subsets, generates stereoisomers and conformers, creates databases of active and inactive compounds with labeled pharmacophore features.
+It takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, `activity value` without header. It splits the input on active and inactive subsets, generates stereoisomers and conformers, creates databases of active and inactive compounds with labeled pharmacophore features.
 ```python
 prepare_datatset -i $PROJECT_DIR/input.smi -c 4
 ```
