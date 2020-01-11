@@ -65,7 +65,7 @@ prepare_db -i $PROJECT_DIR/input.smi -o $PROJECT_DIR/output.db -c 4 -v
 `-v` - print progress 
 There are other arguments available to tweak data set preparation. To get the full list of arguments run `prepare_db -h`  
 
-2. Model building.  
+2. Models screening.  
 It takes as input a created database of compounds with labeled pharmacophore features.
 
 ```python
