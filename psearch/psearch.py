@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-from __future__ import absolute_import
 import os
 import sys
 import argparse
 from multiprocessing import Pool
 
-from scripts.screen_db import screen_db
-from scripts.external_statistics import calc_stat
-from scripts.gen_pharm_models import gen_pharm_models
-from scripts.select_training_set_rdkit import trainingset_formation
+from .scripts.screen_db import screen_db
+from .scripts.external_statistics import calc_stat
+from .scripts.gen_pharm_models import gen_pharm_models
+from .scripts.select_training_set_rdkit import trainingset_formation
 
 
 def create_parser():

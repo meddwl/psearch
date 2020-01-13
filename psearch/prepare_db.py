@@ -3,14 +3,13 @@
 # date            : 01.05.2018
 # license         : BSD-3
 #==============================================================================
-from __future__ import absolute_import
 import os
 import sys
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-from scripts import gen_stereo_rdkit, gen_conf_rdkit, split
-from scripts import create_db
+from .scripts import gen_stereo_rdkit, gen_conf_rdkit, split
+from .scripts import create_db
 
 
 def create_parser():
