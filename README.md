@@ -23,8 +23,8 @@ There are two steps of pharmacophore model generation.
 ```python
 prepare_datatset -i $PROJECT_DIR/input.smi -c 4
 ```
-`-i` - path to the input file;  
-`-c` - number of CPUs to use.
+`-i` - path to the input file  
+`-c` - number of CPUs to use  
 There are some other arguments which one can use. Invoke script with `-h` key to get full information.  
 
 The script takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, `activity` columns without a header. 
