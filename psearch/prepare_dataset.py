@@ -3,7 +3,6 @@
 # date            : 01.05.2018
 # license         : BSD-3
 #==============================================================================
-
 import os
 import sys
 import time
@@ -17,10 +16,8 @@ from .scripts import create_db
 
 def create_parser():
     parser = ArgumentParser(description='', formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--input', metavar='input.smi', nargs='+', type=str, required=True,
+    parser.add_argument('-i', '--input', metavar='input.smi', type=str, required=True,
                         help='input smi file or multiple files')
-    parser.add_argument('-s', '--split_input_file', action='store_true', default=True,
-                        help='if True will split input datasets into active and inactive sets if False will not')
     parser.add_argument('-f', '--rdkit_factory', metavar='features.fdef', default=None,
                         help='text file with definition of pharmacophore features in RDKit format. If file name is not '
                              'specified the default file from the script dir will be used. This option has '
@@ -75,7 +72,7 @@ def common(filenames, nconf, energy, rms, rdkit_factory, ncpu, set_name):
     sys.stderr.write('prepare {} dataset ({}s)'.format(set_name, time.time() - start))
 
 
-def main(in_fname, split_dataset, rdkit_factory, nconf, energy, rms, ncpu):
+def main(in_fname, rdkit_factory, nconf, energy, rms, ncpu):
     """
     launches the entire cycle of data preprocessing: generation of stereoisomers, conformers and a database
     :param in_fname: input .smi file containing information about SMILES, compounds id and its activity status
@@ -88,16 +85,14 @@ def main(in_fname, split_dataset, rdkit_factory, nconf, energy, rms, ncpu):
     :return:
     """
 
-    comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname[0])), 'compounds')
+    comm_path = os.path.join(os.path.dirname(os.path.abspath(in_fname)), 'compounds')
     if not os.path.exists(comm_path):
         os.mkdir(comm_path)
 
-    if split_dataset:
-        mol_act = os.path.join(comm_path, 'active.smi')
-        mol_inact = os.path.join(comm_path, 'inactive.smi')
-        split.main(in_fname[0], mol_act, mol_inact)
-        #in_fname = [mol_act, mol_inact]
-        in_fname = [mol_act]
+    mol_act = os.path.join(comm_path, 'active.smi')
+    mol_inact = os.path.join(comm_path, 'inactive.smi')
+    split.main(in_fname, mol_act, mol_inact)
+    in_fname = [mol_act, mol_inact]
 
     procs = []
     for index, fname in enumerate(in_fname):
@@ -121,7 +116,6 @@ def entry_point():
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "input": in_fname = v
-        if o == "split_input_file": split_dataset = v
         if o == "rdkit_factory": rdkit_factory = v
         if o == "nconf": nconf = int(v)
         if o == "energy_cutoff": energy = float(v)
@@ -129,7 +123,6 @@ def entry_point():
         if o == "ncpu": ncpu = int(v)
 
     main(in_fname=in_fname,
-         split_dataset=split_dataset,
          rdkit_factory=rdkit_factory,
          nconf=nconf,
          energy=energy,

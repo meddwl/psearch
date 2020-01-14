@@ -18,12 +18,10 @@ def main(in_fname, out_act_fname, out_inact_fname):
     :return: None
     """
 
-    df = pd.read_csv(in_fname, sep=',')
-
-    # df = df[['standardized_canonical_smiles', 'cmp', 'status']]
-    df_act = df[df['status'] == 'active']
+    df = pd.read_csv(in_fname, sep='\t', header=None)
+    df_act = df[df[2] == 'active']
     df_act.to_csv(out_act_fname, sep='\t', index=None, header=None)
-    df_inact = df[df['status'] == 'inactive']
+    df_inact = df[df[2] == 'inactive']
     df_inact.to_csv(out_inact_fname, sep='\t', index=None, header=None)
 
     sys.stderr.write('actives: %i, inactives: %i.\n' % (df_act.shape[0], df_inact.shape[0]))
