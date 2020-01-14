@@ -23,27 +23,26 @@ def create_parser():
     parser.add_argument('-idb', '--input_inactive_db', metavar='input.db', default=None,
                         help='SQLite DB with inactive pharmacophores (feature coordinates).')
     parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', nargs='+', type=str, default=None,
-                        help='If None, the path will be generated automatically. ')
+                        help='If omitted, the path will be generated automatically.')
     parser.add_argument('-pma', '--path_pma', metavar='path/pma/files', default=None,
-                        help='If None, the path will be generated automatically. ')
-    parser.add_argument('-ps', '--path_screen', metavar='path/pma/files', default=None,
-                        help='If None, the path will be generated automatically. ')
+                        help='If omitted, the path will be generated automatically.')
+    parser.add_argument('-ps', '--path_screen', metavar='path/to/screen/output', default=None,
+                        help='If omitted, the path will be generated automatically.')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
-                        help='1 - form a training set by Strategy 1 (a single training set from centroids of '
-                             'individual clusters), '
-                             '2 - form a training set by Strategy 2 (separate training set per each cluster), '
-                             '1 2 - form a training sets by Strategy 1 and Strategy 2')
-    parser.add_argument('-u', '--upper', metavar='6', type=int, default=1000,
-                        help='upper number of features used for generation of subpharmacophores.'
-                             'if None well generated pharmacophores with as many features as possible')
-    parser.add_argument('-tol', '--tolerance', metavar='VALUE', default=0,
-                        help='tolerance used for calculation of a stereoconfiguration sign.')
-    parser.add_argument('-thr', '--threshold_clust', default=0.4,
-                        help='threshold for сlustering data by Butina algorithm')
+                        help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
+                             '1 - a single training set will be created from centroids of individual clusters, '
+                             '2 - multiple training sets will be created, one per cluster. Default: 1 2.')
+    parser.add_argument('-u', '--upper', metavar='INTEGER', type=int, default=None,
+                        help='upper number of features in generation of pharmacophores.'
+                             'if omitted pharmacophores of maximum complexity will be generated..')
+    parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', default=0,
+                        help='tolerance used for calculation of a stereoconfiguration sign. Default: 0.')
+    parser.add_argument('-thr', '--threshold_clust', metavar='NUMERIC', default=0.4,
+                        help='threshold for сlustering data by Butina algorithm. Default: 0.4')
     parser.add_argument('--fdef', metavar='smarts.fdef', default=None,
-                        help='fdef-file with pharmacophore feature definition.')
+                        help='fdef-file with pharmacophore feature definition if custom features were used.')
     parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
-                        help='number of cpus to use for calculation.')
+                        help='number of cpus to use for calculation. Default: 1.')
     return parser
 
 
