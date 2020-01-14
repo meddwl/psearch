@@ -48,7 +48,7 @@ psearch -p $PROJECT_DIR -t 0.4 -ts 1 2 -c 4
 The script takes as input a tab-separated SMILES file containing `SMILES` and `compound id` columns.
 
 ```python
-prepare_db -i $PROJECT_DIR/input.smi -o $PROJECT_DIR/compounds.db -c 4 -v
+prepare_db -i compounds.smi -o compounds.db -c 4 -v
 ```
 `-i` - path to the input file;  
 `-c` - number of CPUs to use;
@@ -58,7 +58,7 @@ There are other arguments available to tweak database generation. To get the ful
 2. Virtual screening.
   
 ```python
-screen_db -d $PROJECT_DIR/compounds.db -q $PROJECT_DIR/models/ -o $PROJECT_DIR/screen/ -c 4
+screen_db -d compounds.db -q $PROJECT_DIR/models/ -o screen_results/ -c 4
 ```
 `-d` - input generated SQLite database  
 `-q` - pharmacophore model or models or a directory with models   
