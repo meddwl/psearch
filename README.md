@@ -34,12 +34,15 @@ The script splits input compounds on active and inactive subsets, generates ster
 2. Model building.  
 
 ```python
-psearch -p $PROJECT_DIR -t 0.4 -ts 1 2 -c 4
+psearch -p $PROJECT_DIR -c 4
 ```
-`-p` - path to the project dir;  
-`-t` - threshold for compound clustering to create training sets;
-`-ts` - modes of formed training sets, 1 - form a training set by Strategy 1 (a single training set from centroids of individual clusters), 2 - form a training set by Strategy 2 (separate training set per each cluster), 1 2 - form a training sets by Strategy 1 and Strategy 2;
+`-p` - path to the project dir  
 `-c`- number of CPUs to use
+
+There are two other arguments which are worth to mention:  
+`-t` - threshold for compound clustering to create training sets. Default: 0.4.  
+`-ts` - strategies to create training sets. `1` - a single training set will be created from centroids of individual clusters (capturing a common binding mode for all compounds). `2` - multiple training sets will be created, one per cluster (capturing individual binding modes for compound clusters).
+By default both strategies are used.  
 
 ### Virtual screening with pharmacophore models 
 
@@ -50,9 +53,9 @@ The script takes as input a tab-separated SMILES file containing `SMILES` and `c
 ```python
 prepare_db -i compounds.smi -o compounds.db -c 4 -v
 ```
-`-i` - path to the input file;  
-`-c` - number of CPUs to use;
-`-v` - print progress 
+`-i` - path to the input file  
+`-c` - number of CPUs to use
+`-v` - print progress  
 There are other arguments available to tweak database generation. To get the full list of arguments invoke `-h` key.
  
 2. Virtual screening.
@@ -68,7 +71,7 @@ If a directory would be specified all pma- and xyz-files will be recognized as p
 
 ## Documentation
 
-All scripts have `-h' argument to retrieve descriptions of all available options and arguments.
+All scripts have `-h` argument to retrieve descriptions of all available options and arguments.
 
 ## Authors
 Alina Kutlushina, Pavel Polishchuk
