@@ -159,7 +159,7 @@ def entry_point():
         if o == "path_screen": path_screen = v
         if o == "mode_train_set": mode_train_set = v
         if o == "tolerance": tol = int(v)
-        if o == "upper": upper = int(v)
+        if o == "upper": upper = int(v) if v is not None else None
         if o == "threshold_clust": threshold_clust = float(v)
         if o == "fdef": fdef_fname = v
         if o == "ncpu": ncpu = int(v)
