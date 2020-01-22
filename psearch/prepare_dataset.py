@@ -10,8 +10,8 @@ import time
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from multiprocessing import Process
 
-from .scripts import gen_stereo_rdkit, gen_conf_rdkit, split
-from .scripts import create_db
+from scripts import gen_stereo_rdkit, gen_conf_rdkit, split
+from scripts import create_db
 
 
 def create_parser():

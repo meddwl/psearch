@@ -8,8 +8,8 @@ import sys
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-from .scripts import gen_stereo_rdkit, gen_conf_rdkit
-from .scripts import create_db
+from scripts import gen_stereo_rdkit, gen_conf_rdkit
+from scripts import create_db
 
 
 def create_parser():
