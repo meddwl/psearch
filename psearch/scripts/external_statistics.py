@@ -9,6 +9,7 @@ import sys
 import time
 import json
 import pandas as pd
+import numpy as np
 import argparse
 from pmapper.pharmacophore import Pharmacophore as P
 
@@ -55,51 +56,53 @@ def get_external_stat(mol_act, mol_inact, ts_act, ts_inact, in_pma, in_act_scree
         labels = ''.join(i[0] for i in d['feature_coords'])
         num_uniq_features = len(set(tuple(feature[1]) for feature in d['feature_coords']))
 
-    p = len(open(mol_act).readlines())
-    n = len(open(mol_inact).readlines())
-
     ts_active_mol = [ii.strip().split('\t')[1] for ii in open(ts_act).readlines()]
     if os.path.exists(in_act_screen):
-        act_screen = [ii.strip() for ii in open(in_act_screen).readlines()]
-        tp = len(set(act_screen).difference(ts_active_mol))
+        act_screen = [ii.strip().split('\t')[0] for ii in open(in_act_screen).readlines()]
+        act_screen = set(act_screen).difference(ts_active_mol)
     else:
-        tp = 0
+        act_screen = []
     ts_inactive_mol = [ii.strip().split('\t')[1] for ii in open(ts_inact).readlines()]
     if os.path.exists(in_inact_screen):
-        inact_screen = [ii.strip() for ii in open(in_inact_screen).readlines()]
-        fp = len(set(inact_screen).difference(ts_inactive_mol))
+        inact_screen = [ii.strip().split('\t')[0] for ii in open(in_inact_screen).readlines()]
+        inact_screen = set(inact_screen).difference(ts_inactive_mol)
     else:
-        fp = 0
+        inact_screen = []
 
-    fn = p - tp - len(ts_active_mol)
-    tn = n - fp - len(ts_inactive_mol)
+    p = len(open(mol_act).readlines()) - len(ts_active_mol)
+    n = len(open(mol_inact).readlines()) - len(ts_inactive_mol)
+    tp = len(act_screen)
+    fp = len(inact_screen)
+    fn = p - tp
+    tn = n - fp
 
-    if tp != 0 or fp != 0:
+    if tp == 0 and fp == 0:
+        return [model, tp, fp, p, n,
+                np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
+                num_uniq_features, medge, labels]
+
+    elif tp != 0 or fp != 0:
         precision = round(tp / (tp + fp), 3)
         recall = round(tp / (tp + fn), 3)
         fpr = round(fp / (tn + fp), 3)
-        # ba = round((recall + (tn / (tn + fp))) / 2, 3)
+        ba = round((recall + (tn / (tn + fp))) / 2, 3)
         ef = round((tp / (tp + fp)) / (p / (p + n)), 3)
         if precision != 0 and recall != 0:
             f1 = round((2 * precision * recall) / (precision + recall), 3)
             f2 = round((5 * precision * recall) / (4 * precision + recall), 3)
             f05 = round((1.25 * precision * recall) / (0.25 * precision + recall), 3)
         else:
-            f1 = -1
-            f2 = -1
-            f05 = -1
-
-        return [model, tp, fp, p, n, precision, fpr, recall, f1, f2, f05, ef, num_uniq_features, medge, labels]
-
-    elif tp != 0 or fp != 0:
-        return [model, tp, fp, -1, -1, -1, -1, -1, -1, -1, -1, num_uniq_features, medge, labels]
+            f1 = np.nan
+            f2 = np.nan
+            f05 = np.nan
+        return [model, tp, fp, p, n, precision, fpr, recall, f1, f2, f05, ba, ef, num_uniq_features, medge, labels]
 
 
 def calc_stat(mol_act, mol_inact, path_ts, path_to_pma, in_act_screen, in_inact_screen, out_external):
     start_time = time.time()
 
     df_result = pd.DataFrame(columns=['model', 'TP', 'FP', 'P', 'N', 'precision', 'FPR', 'recall',
-                                      'F1', 'F2', 'F05', 'EF', 'num_uniq_F', 'max_edge', 'features'])
+                                      'F1', 'F2', 'F05', 'BA', 'EF', 'num_uniq_F', 'max_edge', 'features'])
 
     for enum, in_pma in enumerate(os.listdir(path_to_pma)):
         ppath = (os.path.join(os.path.abspath(path_ts), 'active_{}.csv'.format(in_pma.split('_')[0])),
