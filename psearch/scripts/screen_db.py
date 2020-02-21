@@ -166,11 +166,12 @@ def screen_db(db_fname, queries, output, input_sdf, match_first_conf, min_featur
 
     comp_names = get_comp_names_from_db(db_fname)
     if ncpu == 1:
-        for res in screen(mol_name=comp_names, db_conn=db_fname, models=models, input_sdf=input_sdf, match_first_conf=match_first_conf):
-            if not is_sdf_output:
-                for mol_name, conf_id, out_fname in res:
-                    with open(out_fname, 'at') as f:
-                        f.write('{}\t{}\n'.format(mol_name, conf_id))
+        for mol_name in comp_names:
+            for res in screen(mol_name=mol_name, db_conn=db_fname, models=models, input_sdf=input_sdf, match_first_conf=match_first_conf):
+                if not is_sdf_output:
+                    for mol_name, conf_id, out_fname in res:
+                        with open(out_fname, 'at') as f:
+                            f.write('{}\t{}\n'.format(mol_name, conf_id))
     else:
         p = Pool(ncpu)
         for res in p.imap_unordered(partial(screen, db_conn=db_fname, models=models, input_sdf=input_sdf, match_first_conf=match_first_conf), comp_names, chunksize=10):
