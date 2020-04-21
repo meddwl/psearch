@@ -13,6 +13,7 @@ from multiprocessing import Pool
 from functools import partial
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from scripts.database import DB
 
 Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophore'])
@@ -134,8 +135,10 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
         if not os.path.exists(output):
             os.makedirs(output, exist_ok=True)
 
-    db = shelve.open(os.path.splitext(db_fname)[0])
-    bin_step = get_bin_step(db)
+    # db = shelve.open(os.path.splitext(db_fname)[0])
+    # bin_step = get_bin_step(db)
+    db = DB(db_fname)
+    bin_step = db.get_bin_step()
     models = read_models(queries, output, output_sdf, bin_step, min_features)   # return list of Model namedtuples
     for model in models:
         if os.path.isfile(model.output_filename):
