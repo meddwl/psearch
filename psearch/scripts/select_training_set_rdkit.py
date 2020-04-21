@@ -142,10 +142,10 @@ def trainingset_formation(input_mols, path_ts, fdef_fname, mode_train_set, fcfp4
             out_act = os.path.join(path_ts, f'active_t{i}.smi')
             out_inact = os.path.join(path_ts, f'inactive_t{i}.smi')
             list_ts.append([out_act, out_inact])
-            # with open(out_act, 'wt') as f:
-            #     f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in act_ts))
-            # with open(out_inact, 'wt') as f:
-            #     f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in inact_ts))
+            with open(out_act, 'wt') as f:
+                f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in act_ts))
+            with open(out_inact, 'wt') as f:
+                f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in inact_ts))
 
     if 1 in mode_train_set:
         out_act = os.path.join(path_ts, 'active_centroid.smi')
@@ -157,15 +157,15 @@ def trainingset_formation(input_mols, path_ts, fdef_fname, mode_train_set, fcfp4
         centroids = get_centroids(cs, df_act, clust_size)
         if len(centroids) < clust_size:
             return list_ts
-        # with open(out_act, 'wt') as f:
-        #     f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in centroids))
+        with open(out_act, 'wt') as f:
+            f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in centroids))
 
         # process inactives
         df_inact = df_mols[df_mols['activity'] == inact_mark].reset_index(drop=True)
         cs = gen_cluster_subset_butina(df_inact['fp'].tolist(), threshold)
         centroids = get_centroids(cs, df_inact, clust_size)
-        # with open(out_inact, 'wt') as f:
-        #     f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in centroids))
+        with open(out_inact, 'wt') as f:
+            f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in centroids))
         list_ts.append([out_act, out_inact])
     return list_ts
 
