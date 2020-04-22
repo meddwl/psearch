@@ -43,3 +43,9 @@ class DB:
 
     def get_fp(self, mol_name):
         return self.__db[f'{mol_name}_fp']
+
+    def get_mol_names(self):
+        names = list(self.__db.keys())
+        names.remove('_bin_step')
+        names = [n[:-4] for n in names if n.endswith('_mol')]
+        return tuple(names)

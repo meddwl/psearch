@@ -22,12 +22,12 @@ Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophor
 def create_parser():
     parser = argparse.ArgumentParser(description='Screen SQLite DB with compounds against pharmacophore queries.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--dbname', metavar='input.dat', type=str, required=True,
-                        help='input database with generated compound pharmacophores.')
-    parser.add_argument('-q', '--query', metavar='model.pma', required=True, type=str, nargs='+',
+    parser.add_argument('-d', '--dbname', metavar='FILENAME', type=str, required=True,
+                        help='input database with generated conformers and pharmacophores.')
+    parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME', required=True, type=str, nargs='+',
                         help='pharmacophore model or models or a directory path. If a directory is specified all '
                              'pma- and xyz-files will be used for screening as pharmacophore models.')
-    parser.add_argument('-o', '--output', required=True, type=str,
+    parser.add_argument('-o', '--output', metavar='FILENAME or DIRNAME', required=True, type=str,
                         help='a text (.txt) file which will store names of compounds which fit the model or '
                              'a sdf file which will store matched conformers of compounds. The output format '
                              'will be recognized by file extension. In the case multiple query models were supplied '
@@ -35,38 +35,29 @@ def create_parser():
                              'screening results. In this case file format should be specified by a separate argument. '
                              'Existed output files will be overwritten.')
     parser.add_argument('-f', '--min_features', metavar='INTEGER', default=None, type=int,
-                        help='minimum number of features with distinct coordinates in models. '
-                             'Default: all models will be screened.')
+                        help='minimum number of features with distinct coordinates in models. Models having less '
+                             'number of features will be skipped. Default: all models will be screened.')
     parser.add_argument('-z', '--output_sdf', action='store_true', default=False,
                         help='specify if sdf output with matched conformers is required.')
     parser.add_argument('--conf', action='store_true', default=False,
                         help='return all conformers matches as separate hits in a hit list. Required to calculate the '
-                             'score by the conformer coverage approach.')
+                             'score by the conformer coverage approach (CCA).')
     parser.add_argument('-c', '--ncpu', metavar='INTEGER', default=1, type=int,
                         help='number of cores to use. Default: 1.')
     return parser
 
 
-def get_bin_step(db):
-    return db['_bin_step']
-
-
 def load_confs(mol_name, db):
-    bin_step = get_bin_step(db)
-    stereoisomers = db[mol_name]
+    bin_step = db.get_bin_step()
+    fp_dict = db.get_fp(mol_name)
+    ph_dict = db.get_pharm(mol_name)
     res = []
-    for stereo_id, mol_item in stereoisomers.items():
-        for conf_id, (fp, coord) in enumerate(zip(mol_item['fp'], mol_item['ph'])):
+    for stereo_id in fp_dict:
+        for conf_id, (fp, coord) in enumerate(zip(fp_dict[stereo_id], ph_dict[stereo_id])):
             p = Pharmacophore(bin_step=bin_step)
             p.load_from_feature_coords(coord)
             res.append(Conformer(stereo_id, conf_id, fp, p))
     return res
-
-
-def get_comp_names_from_db(db):
-    names = list(db.keys())
-    names.remove('_bin_step')
-    return tuple(names)
 
 
 def read_models(queries, output, is_output_sdf, bin_step, min_features):
@@ -126,6 +117,22 @@ def screen(mol_name, db, models, output_sdf, match_first_conf):
     return output
 
 
+def save_results(results, output_sdf, db):
+    if not output_sdf:
+        for mol_name, stereo_id, conf_id, out_fname in results:
+            with open(out_fname, 'at') as f:
+                f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
+    else:
+        for mol_name, stereo_id, conf_id, out_fname, matrix in results:
+            m = db.get_mol(mol_name)[stereo_id]
+            AllChem.TransformMol(m, matrix, conf_id)
+            m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
+            with open(out_fname, 'a') as f:
+                w = Chem.SDWriter(f)
+                w.write(m)
+                w.close()
+
+
 def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_features, ncpu):
 
     if output.endswith('.txt') or output.endswith('.sdf'):
@@ -135,8 +142,6 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
         if not os.path.exists(output):
             os.makedirs(output, exist_ok=True)
 
-    # db = shelve.open(os.path.splitext(db_fname)[0])
-    # bin_step = get_bin_step(db)
     db = DB(db_fname)
     bin_step = db.get_bin_step()
     models = read_models(queries, output, output_sdf, bin_step, min_features)   # return list of Model namedtuples
@@ -144,43 +149,20 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
         if os.path.isfile(model.output_filename):
             os.remove(model.output_filename)
 
-    comp_names = get_comp_names_from_db(db)
+    comp_names = db.get_mol_names()
+
+    print(comp_names)
+
     if ncpu == 1:
         for comp_name in comp_names:
             res = screen(mol_name=comp_name, db=db, models=models, output_sdf=output_sdf, match_first_conf=match_first_conf)
             if res:
-                if not output_sdf:
-                    for mol_name, stereo_id, conf_id, out_fname in res:
-                        with open(out_fname, 'at') as f:
-                            f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
-                else:
-                    for mol_name, stereo_id, conf_id, out_fname, matrix in res:
-                        m = db[mol_name][stereo_id]['mol']
-                        AllChem.TransformMol(m, matrix, conf_id)
-                        m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
-                        with open(out_fname, 'a') as f:
-                            w = Chem.SDWriter(f)
-                            w.write(m)
-                            w.close()
-
+                save_results(res, output_sdf, db)
     else:
         p = Pool(ncpu)
         for res in p.imap_unordered(partial(screen, db=db, models=models, output_sdf=output_sdf, match_first_conf=match_first_conf), comp_names, chunksize=10):
             if res:
-                if not output_sdf:
-                    for mol_name, stereo_id, conf_id, out_fname in res:
-                        with open(out_fname, 'at') as f:
-                            f.write('\t'.join((mol_name, stereo_id, conf_id)) + '\n')
-                else:
-                    for mol_name, stereo_id, conf_id, out_fname, matrix in res:
-                        m = db[mol_name][stereo_id]['mol']
-                        AllChem.TransformMol(m, matrix, conf_id)
-                        m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
-                        with open(out_fname, 'a') as f:
-                            w = Chem.SDWriter(f)
-                            w.write(m)
-                            w.close()
-
+                save_results(res, output_sdf, db)
         p.close()
 
 
