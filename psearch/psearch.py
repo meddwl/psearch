@@ -33,8 +33,6 @@ def create_parser():
                         help='tolerance used for calculation of a stereoconfiguration sign.')
     parser.add_argument('-thr', '--threshold', metavar='NUMERIC', type=float, default=0.4,
                         help='threshold for сlustering data by Butina algorithm.')
-    # parser.add_argument('--fdef', metavar='smarts.fdef', type=str, default=None,
-    #                     help='fdef-file with pharmacophore feature definition if custom features were used.')
     parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', type=str, default=None,
                         help='If omitted, the path will be generated automatically.')
     parser.add_argument('-pm', '--path_models', metavar='path/to/models/', type=str, default=None,
@@ -167,7 +165,6 @@ def entry_point():
          tol=tol,
          upper=upper,
          threshold=threshold,
-         # fdef_fname=fdef_fname,
          bin_step=bin_step,
          ncpu=ncpu)
 

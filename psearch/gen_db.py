@@ -16,14 +16,13 @@ from pmapper import utils
 from itertools import combinations
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
 from psearch.scripts.read_input import read_input
 from psearch.database import DB
 
 
-def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step):
+def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
     box_mol_names = set()
     input_format = 'smi' if fname is None else None
     for mol, mol_name in read_input(fname, input_format=input_format):
@@ -32,7 +31,7 @@ def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step):
             continue
         else:
             box_mol_names.add(mol_name)
-        yield mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step
+        yield mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_def
 
 
 def map_gen_data(args):
@@ -93,7 +92,7 @@ def remove_confs(mol, energy, rms):
         conf.SetId(i)
 
 
-def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step):
+def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
     mol_dict, ph_dict, fp_dict = dict(), dict(), dict()
 
     isomers = gen_stereo(mol, nstereo)
@@ -101,7 +100,7 @@ def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step):
         mol = gen_conf(mol, nconf, seed)
         remove_confs(mol, energy, rms)
 
-        phs = utils.load_multi_conf_mol(mol, bin_step=bin_step)
+        phs = utils.load_multi_conf_mol(mol, smarts_features=pharm_def, bin_step=bin_step)
         mol_dict[i] = mol
         ph_dict[i] = [ph.get_feature_coords() for ph in phs]
         fp_dict[i] = [ph.get_fp() for ph in phs]
@@ -109,7 +108,7 @@ def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step):
     return mol_name, mol_dict, ph_dict, fp_dict
 
 
-def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, seed, verbose):
+def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, pharm_def, seed, verbose):
     if verbose:
         sys.stderr.write('Database creation started\n')
 
@@ -139,7 +138,8 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
 
     try:
         for i, (mol_name, mol_dict, ph_dict, fp_dict) in enumerate(
-                p.imap_unordered(map_gen_data, prep_input(in_fname, nconf, nstereo, energy, rms, seed, bin_step),
+                p.imap_unordered(map_gen_data, prep_input(in_fname, nconf, nstereo, energy, rms, seed, bin_step,
+                                                          pharm_def),
                                  chunksize=10), 1):
             if output_file_type == 'shelve':
                 db.write_mol(mol_name, mol_dict)
@@ -179,22 +179,25 @@ def entry_point():
     parser.add_argument('-o', '--out_fname', metavar='FILENAME', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
                              '.dat and .dir.')
-    parser.add_argument('-b', '--bin_step', type=float, default=1,
-                        help='binning step of pharmacophore model creation. Default: 1.')
+    parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=float, default=1,
+                        help='binning step for pharmacophores creation. Default: 1.')
     parser.add_argument('-s', '--nstereo', metavar='INTEGER', type=int, default=5,
                         help='maximum number of generated stereoisomers per compound (centers with specified '
                              'stereoconfogurations wil not be altered). Default: 5.')
     parser.add_argument('-n', '--nconf', metavar='INTEGER', type=int, default=50,
                         help='number of generated conformers. Default: 50.')
-    parser.add_argument('-e', '--energy_cutoff', metavar='10', type=float, default=10,
+    parser.add_argument('-e', '--energy_cutoff', metavar='NUMERIC', type=float, default=10,
                         help='conformers with energy difference from the lowest one greater than the specified '
                              'threshold will be discarded. Default: 10.')
-    parser.add_argument('-r', '--rms', metavar='rms_threshold', type=float, default=None,
+    parser.add_argument('-r', '--rms', metavar='NUMERIC', type=float, default=None,
                         help='only conformers with RMS higher then threshold will be kept. '
                              'Default: None (keep all conformers).')
-    parser.add_argument('--seed', metavar='random_seed', type=int, default=-1,
+    parser.add_argument('--seed', metavar='INTEGER', type=int, default=-1,
                         help='integer to init random number generator. Default: -1 (means no seed).')
-    parser.add_argument('-c', '--ncpu', metavar='cpu_number', type=int, default=1,
+    parser.add_argument('-p', '--pharm', metavar='FILENAME', type=str, default=None,
+                        help='pharmacophore feature definition. If not specified default pmapper definitions '
+                             'will be used.')
+    parser.add_argument('-c', '--ncpu', metavar='INTEGER', type=int, default=1,
                         help='number of cpu to use for calculation. Default: 1.')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='print progress to STDERR.')
@@ -207,6 +210,7 @@ def entry_point():
               energy=args.energy_cutoff,
               rms=args.rms,
               bin_step=args.bin_step,
+              pharm_def=args.pharm,
               ncpu=args.ncpu,
               seed=args.seed,
               verbose=args.verbose)
