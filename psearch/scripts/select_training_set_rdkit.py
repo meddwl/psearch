@@ -26,18 +26,15 @@ def create_parser():
                         help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
                              '1 - a single training set will be created from centroids of individual clusters, '
                              '2 - multiple training sets will be created, one per cluster. Default: 1 2.')
-    # parser.add_argument('-f', '--rdkit_fdef', metavar='smarts.fdef', required=False, default=None,
-    #                     help='fdef-file with pharmacophore feature definition.')
     parser.add_argument('--fcfp4', action='store_true', default=False,
-                        help='if set FCFP4 fingerprints will be used for compound selection, '
-                             'otherwise pharmacophore fingerprints will be used based on feature '
-                             'definitions provided by --rdkit_fdef argument.')
+                        help='if set FCFP4 fingerprints will be used for compound clustering, '
+                             'otherwise pharmacophore fingerprints will be used.')
     parser.add_argument('-s', '--cluster_stat', default=None,
-                        help='if designate path to file than save cluster statistics')
+                        help='if designate path to file then save cluster statistics')
     parser.add_argument('-t', '--threshold_clust', type=float, default=0.4,
-                        help='threshold for сlustering data by Butina algorithm')
+                        help='threshold for clustering data by Butina algorithm')
     parser.add_argument('-clz', '--clust_size', type=int, default=5,
-                        help='minimum cluster size from extract centroids for training set')
+                        help='minimum cluster size to extract centroids for the training set')
     parser.add_argument('-m', '--max_acts', type=int, default=5,
                         help='maximum number of active compounds for training set')
     return parser
@@ -182,7 +179,6 @@ def entry_point():
 
     trainingset_formation(input_mols=args.input_mols,
                           path_ts=output,
-                          # fdef_fname=args.rdkit_fdef,
                           mode_train_set=args.mode_train_set,
                           fcfp4=args.fcfp4,
                           clust_stat=open(args.cluster_stat, 'wt') if args.cluster_stat else None,
