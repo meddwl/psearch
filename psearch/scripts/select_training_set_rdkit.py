@@ -27,8 +27,8 @@ def create_parser():
                         help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
                              '1 - a single training set will be created from centroids of individual clusters, '
                              '2 - multiple training sets will be created, one per cluster. Default: 1 2.')
-    parser.add_argument('-f', '--rdkit_fdef', metavar='smarts.fdef', required=False, default=None,
-                        help='fdef-file with pharmacophore feature definition.')
+    # parser.add_argument('-f', '--rdkit_fdef', metavar='smarts.fdef', required=False, default=None,
+    #                     help='fdef-file with pharmacophore feature definition.')
     parser.add_argument('--fcfp4', action='store_true', default=False,
                         help='if set FCFP4 fingerprints will be used for compound selection, '
                              'otherwise pharmacophore fingerprints will be used based on feature '
@@ -44,11 +44,10 @@ def create_parser():
     return parser
 
 
-def read_file(fname, fcfp4, fdef_fname):
+def read_file(fname, fcfp4):
     """
     :param fname: path to input SMILES file with molecules defined activity
     :param fcfp4:
-    :param fdef_fname: fdef-file with pharmacophore feature definition.
     :return: pandas.DataFrame, columns = mol_name, smiles, activity, fp
     """
     df = pd.read_csv(fname, sep='\t', header=None)
@@ -60,7 +59,7 @@ def read_file(fname, fcfp4, fdef_fname):
     if fcfp4:
         df['fp'] = [(AllChem.GetMorganFingerprint(Chem.MolFromSmiles(smiles), 2, useFeatures=True)) for smiles in df['smiles']]
     else:
-        featfactory = load_factory(fdef_fname)
+        featfactory = load_factory()
         sigfactory = SigFactory(featfactory, minPointCount=2, maxPointCount=3, trianglePruneBins=False)
         sigfactory.SetBins([(0, 2), (2, 5), (5, 8)])
         sigfactory.Init()
@@ -112,13 +111,13 @@ def get_centroids(cs, df, num):
     return tuple(sorted((df.at[x[0], 'mol_name'], df.at[x[0], 'smiles']) for x in cs if len(x) >= num))
 
 
-def trainingset_formation(input_mols, path_ts, fdef_fname, mode_train_set, fcfp4,
+def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4,
                           clust_stat, threshold, clust_size, max_num_acts):
 
     if (1 not in mode_train_set) and (2 not in mode_train_set):
         return 'Wrong value of parameter mode_train_set. That should be 1 and/or 2.'
 
-    df_mols = read_file(input_mols, fcfp4, fdef_fname)
+    df_mols = read_file(input_mols, fcfp4)
     if df_mols['activity'].dtypes == 'int64':
         df_mols = df_mols.sort_values(by='activity', ascending=True).reset_index(drop=True)
         inact_mark = 0
@@ -183,7 +182,7 @@ def entry_point():
 
     trainingset_formation(input_mols=args.input_mols,
                           path_ts=output,
-                          fdef_fname=args.rdkit_fdef,
+                          # fdef_fname=args.rdkit_fdef,
                           mode_train_set=args.mode_train_set,
                           fcfp4=args.fcfp4,
                           clust_stat=open(args.cluster_stat, 'wt') if args.cluster_stat else None,

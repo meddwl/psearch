@@ -6,19 +6,35 @@ from multiprocessing import Pool
 
 from scripts.screen_db import screen_db
 from scripts.external_statistics import calc_stat
-from scripts.gen_ph import gen_pharm_models
+from scripts.gen_pharm_models import gen_pharm_models
 from scripts.select_training_set_rdkit import trainingset_formation
 
 
 def create_parser():
-    parser = argparse.ArgumentParser(description='Pharmacophore model building',
+    parser = argparse.ArgumentParser(description='Ligand-based pharmacophore model building',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--project_dir', type=str, default=None,
                         help='path to a project dir. Path where will be saved ')
     parser.add_argument('-m', '--input_molecules', metavar='molecules.smi', type=str, required=True,
-                        help='path to SMILES file with molecules.')
-    parser.add_argument('-db', '--input_db', metavar='input.db', type=str, required=True,
-                        help='path to shelve databased')
+                        help='path to tab-separated file with SMILES, molecule name and active/inactive '
+                             'in the third column.')
+    parser.add_argument('-db', '--input_db', metavar='FILENAME', type=str, required=True,
+                        help='path to shelve database with precomputed conformers and pharmacophores')
+    parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
+                        help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
+                             '1 - a single training set will be created from centroids of individual clusters, '
+                             '2 - multiple training sets will be created, one per cluster. Default: 1 2.')
+    parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=float, default=1,
+                        help='binning step. Default: 1.')
+    parser.add_argument('-u', '--upper', metavar='INTEGER', type=int, default=None,
+                        help='upper number of features in generation of pharmacophores.'
+                             'if omitted pharmacophores of maximum complexity will be generated..')
+    parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', type=float, default=0,
+                        help='tolerance used for calculation of a stereoconfiguration sign.')
+    parser.add_argument('-thr', '--threshold', metavar='NUMERIC', type=float, default=0.4,
+                        help='threshold for сlustering data by Butina algorithm.')
+    # parser.add_argument('--fdef', metavar='smarts.fdef', type=str, default=None,
+    #                     help='fdef-file with pharmacophore feature definition if custom features were used.')
     parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', type=str, default=None,
                         help='If omitted, the path will be generated automatically.')
     parser.add_argument('-pm', '--path_models', metavar='path/to/models/', type=str, default=None,
@@ -27,21 +43,6 @@ def create_parser():
                         help='If omitted, the path will be generated automatically.')
     parser.add_argument('-pr', '--path_external_statistics', metavar='path/external/statistics', default=None,
                         help='If omitted, the path will be generated automatically.')
-    parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
-                        help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
-                             '1 - a single training set will be created from centroids of individual clusters, '
-                             '2 - multiple training sets will be created, one per cluster.')
-    parser.add_argument('-u', '--upper', metavar='INTEGER', type=int, default=None,
-                        help='upper number of features in generation of pharmacophores.'
-                             'if omitted pharmacophores of maximum complexity will be generated..')
-    parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', type=float, default=0,
-                        help='tolerance used for calculation of a stereoconfiguration sign.')
-    parser.add_argument('-thr', '--threshold', metavar='NUMERIC', type=float, default=0.4,
-                        help='threshold for сlustering data by Butina algorithm.')
-    parser.add_argument('--fdef', metavar='smarts.fdef', type=str, default=None,
-                        help='fdef-file with pharmacophore feature definition if custom features were used.')
-    parser.add_argument('-b', '--bin_step', type=int, default=1,
-                        help='binning step.')
     parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
                         help='number of cpus to use for calculation.')
     return parser
@@ -61,7 +62,8 @@ def creating_pharmacophore(project_dir, in_db, files_ats, files_ints, path_pma, 
         os.makedirs(path_pma)
     gen_pharm_models(project_dir=project_dir,
                      in_db=in_db,
-                     act_trainset=files_ats, inact_trainset=files_ints,
+                     act_trainset=files_ats,
+                     inact_trainset=files_ints,
                      out_pma=path_pma,
                      tolerance=tol,
                      lower=3, upper=upper,
@@ -83,7 +85,7 @@ def pharmacophore_validation(mols, in_db, path_ts, path_pma, path_screen, pp_ext
 
 
 def main(project_dir, in_mols, in_db, path_ts, path_pma, path_screen, pp_external_stat, path_clus_stat,
-         mode_train_set, tol, upper, fdef_fname, threshold, bin_step, ncpu):
+         mode_train_set, tol, upper, threshold, bin_step, ncpu):
 
     p = Pool(ncpu)
 
@@ -91,7 +93,7 @@ def main(project_dir, in_mols, in_db, path_ts, path_pma, path_screen, pp_externa
         os.makedirs(path_ts)
     list_ts = trainingset_formation(input_mols=in_mols,
                                     path_ts=path_ts,
-                                    fdef_fname=fdef_fname,
+                                    # fdef_fname=fdef_fname,
                                     mode_train_set=mode_train_set,
                                     fcfp4=False,
                                     clust_stat=open(path_clus_stat, 'w'),
@@ -133,7 +135,7 @@ def entry_point():
         if o == "tolerance": tol = int(v)
         if o == "upper": upper = int(v) if v is not None else None
         if o == "threshold": threshold = float(v)
-        if o == "fdef": fdef_fname = v
+        # if o == "fdef": fdef_fname = v
         if o == "bin_step": bin_step = int(v)
         if o == "ncpu": ncpu = int(v)
 
@@ -165,7 +167,7 @@ def entry_point():
          tol=tol,
          upper=upper,
          threshold=threshold,
-         fdef_fname=fdef_fname,
+         # fdef_fname=fdef_fname,
          bin_step=bin_step,
          ncpu=ncpu)
 
