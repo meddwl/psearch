@@ -7,7 +7,6 @@
 import os
 import argparse
 import pandas as pd
-from collections import defaultdict
 from rdkit import Chem, DataStructs
 from rdkit.ML.Cluster import Butina
 from rdkit.Chem import AllChem

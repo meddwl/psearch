@@ -6,14 +6,13 @@
 
 import os
 import argparse
-import shelve
 from collections import namedtuple
 from pmapper.pharmacophore import Pharmacophore
 from multiprocessing import Pool
 from functools import partial
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from scripts.database import DB
+from psearch.database import DB
 
 Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophore'])

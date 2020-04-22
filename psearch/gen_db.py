@@ -19,8 +19,8 @@ from rdkit.Chem import AllChem
 from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
-from scripts.read_input import read_input
-from scripts.database import DB
+from psearch.scripts.read_input import read_input
+from psearch.database import DB
 
 
 def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step):

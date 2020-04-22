@@ -10,7 +10,7 @@ import time
 import argparse
 import numpy as np
 import pandas as pd
-from scripts.database import DB
+from psearch.database import DB
 from pmapper.pharmacophore import Pharmacophore
 
 
