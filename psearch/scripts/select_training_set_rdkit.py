@@ -68,10 +68,11 @@ def read_file(fname, fcfp4):
 
 def gen_cluster_subset_butina(fps, cutoff):
     dists = []
-    for i, fp in enumerate(fps):
-        distance_matrix = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
-        dists.extend([1 - x for x in distance_matrix])
-    cs = Butina.ClusterData(dists, len(fps), cutoff, isDistData=True)
+    nfps = len(fps)
+    for i in range(1, nfps):
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
+        dists.extend([1 - x for x in sims])
+    cs = Butina.ClusterData(dists, nfps, cutoff, isDistData=True)
     return cs  # returns tuple of tuples with sequential numbers of compounds in each cluster
 
 

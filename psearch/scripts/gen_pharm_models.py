@@ -49,7 +49,7 @@ def _keep_best_models(df, df_pharm_act, df_pharm_inact, df_sub_act, df_sub_inact
     df_pharm_act = df_pharm_act[df_pharm_act['conf_id'].isin(set(df_sub_act['conf_id']))].reset_index(drop=True)
     if not df_sub_inact.empty:
         df_sub_inact = df_sub_inact[df_sub_inact['hash'].isin(set(df['hash']))].reset_index(drop=True)
-        df_pharm_inact = df_pharm_inact[df_pharm_inact['conf_id'].isin(set(df_sub_act['conf_id']))].reset_index(drop=True)
+        df_pharm_inact = df_pharm_inact[df_pharm_inact['conf_id'].isin(set(df_sub_inact['conf_id']))].reset_index(drop=True)
 
     if save_files:
         path_internal = os.path.join(save_files[0], 'internal_statistics_{}_f{}.txt'.format(save_files[1], save_files[2]))
@@ -132,7 +132,7 @@ def strategy_extract_trainset(df, clust_strategy):
 # return type DataFrame: columns=['hash', 'TP', 'FP', 'precision', 'recall', 'F2', 'F05']
 def calc_internal_stat(df_act, df_inact, act_trainset, clust_strategy):
     if not df_inact.empty:
-        df = pd.merge(df_act, df_inact, on=['hash'], how='left')
+        df = pd.merge(df_act, df_inact, on=['hash'])
         df.loc[df['FP'].isnull(), 'FP'] = 0
     else:
         df = df_act
