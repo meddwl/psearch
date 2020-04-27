@@ -61,11 +61,11 @@ def get_external_stat(path_mols, ts_act, ts_inact, in_pma, in_screen):
     if not Chem.MolFromSmiles(df_mols.at[0, 'smiles']):
         df_mols.drop(index=0)
     if df_mols['activity'].dtypes == 'int64':
-        df_act = df_mols[df_mols['activity'] == 1][~df_mols['mol_name'].isin(ts_act_mol)]
-        df_inact = df_mols[df_mols['activity'] == 0][~df_mols['mol_name'].isin(ts_inact_mol)]
+        df_act = df_mols[(df_mols['activity'] == 1) & (~df_mols['mol_name'].isin(ts_act_mol))]
+        df_inact = df_mols[(df_mols['activity'] == 0) & (~df_mols['mol_name'].isin(ts_inact_mol))]
     else:
-        df_act = df_mols[df_mols['activity'] == 'active'][~df_mols['mol_name'].isin(ts_act_mol)]
-        df_inact = df_mols[df_mols['activity'] == 'inactive'][~df_mols['mol_name'].isin(ts_inact_mol)]
+        df_act = df_mols[(df_mols['activity'] == 'active') & (~df_mols['mol_name'].isin(ts_act_mol))]
+        df_inact = df_mols[(df_mols['activity'] == 'inactive') & (~df_mols['mol_name'].isin(ts_inact_mol))]
 
     if os.path.exists(in_screen):
         res_screen = [ii.strip().split()[0] for ii in open(in_screen).readlines()]
@@ -76,30 +76,32 @@ def get_external_stat(path_mols, ts_act, ts_inact, in_pma, in_screen):
         inact_screen = []
 
     p = df_act.shape[0]
-    n = df_inact[0]
+    n = df_inact.shape[0]
     tp = len(act_screen)
     fp = len(inact_screen)
-    fn = p - tp
+    # fn = p - tp
     tn = n - fp
 
-    if tp == 0 and fp == 0:
-        return [model, tp, fp, p, n, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, num_uniq_features, medge, labels]
+    recall = tp / p
+    tnr = tn / n
+    fpr = fp / n
+    ba = (recall + tnr) / 2
+    # accuracy = (tp + tn) / (p + n)
 
-    elif tp != 0 or fp != 0:
-        precision = round(tp / (tp + fp), 3)
-        recall = round(tp / (tp + fn), 3)
-        fpr = round(fp / (tn + fp), 3)
-        ba = round((recall + (tn / (tn + fp))) / 2, 3)
-        ef = round((tp / (tp + fp)) / (p / (p + n)), 3)
-        if precision != 0 and recall != 0:
-            f1 = round((2 * precision * recall) / (precision + recall), 3)
-            f2 = round((5 * precision * recall) / (4 * precision + recall), 3)
-            f05 = round((1.25 * precision * recall) / (0.25 * precision + recall), 3)
-        else:
-            f1 = np.nan
-            f2 = np.nan
-            f05 = np.nan
-        return [model, tp, fp, p, n, precision, fpr, recall, f1, f2, f05, ba, ef, num_uniq_features, medge, labels]
+    if tp == 0 and fp == 0:
+        precision = -1
+        ef = -1
+        f1 = -1
+        f2 = -1
+        f05 = -1
+    else:
+        precision = tp / (tp + fp)
+        ef = precision / (p / (p + n))
+        f1 = (2 * precision * recall) / (precision + recall)
+        f2 = (5 * precision * recall) / (4 * precision + recall)
+        f05 = (1.25 * precision * recall) / (0.25 * precision + recall)
+
+    return [model, tp, fp, p, n, precision, fpr, recall, f1, f2, f05, ba, ef, num_uniq_features, medge, labels]
 
 
 def calc_stat(path_mols, path_ts, path_pma, path_screen, out_external):
@@ -111,11 +113,11 @@ def calc_stat(path_mols, path_ts, path_pma, path_screen, out_external):
                                       'F1', 'F2', 'F05', 'BA', 'EF', 'num_uniq_F', 'max_edge', 'features'])
 
     for enum, in_pma in enumerate(os.listdir(path_pma)):
-        ppath = (os.path.join(path_ts, f'active_{in_pma.split("_")[0]}.csv'),
-                 os.path.join(path_ts, f'inactive_{in_pma.split("_")[0]}.csv'),
-                 os.path.join(path_screen, f'{in_pma.split("_")[0]}.txt'),
+        ppath = (os.path.join(path_ts, f'active_{in_pma.split("_")[0]}.smi'),
+                 os.path.join(path_ts, f'inactive_{in_pma.split("_")[0]}.smi'),
+                 os.path.join(path_screen, f'{os.path.splitext(in_pma)[0]}.txt'),
                  os.path.abspath(os.path.join(path_pma, in_pma)))
-        result = get_external_stat(path_mols, ppath[0], ppath[1], ppath[4], ppath[2])
+        result = get_external_stat(path_mols, ppath[0], ppath[1], ppath[3], ppath[2])
         if result:
             df_result.loc[enum] = result
         else:

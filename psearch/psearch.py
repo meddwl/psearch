@@ -56,8 +56,8 @@ def get_items(project_dir, in_db, list_ts, path_pma, tol, upper, bin_step):
 
 
 def creating_pharmacophore(project_dir, in_db, files_ats, files_ints, path_pma, tol, upper, bin_step):
-    if not os.path.exists(path_pma):
-        os.makedirs(path_pma)
+    # if not os.path.exists(path_pma):
+    #     os.makedirs(path_pma)
     gen_pharm_models(project_dir=project_dir,
                      in_db=in_db,
                      act_trainset=files_ats,
@@ -107,15 +107,12 @@ def main(project_dir, in_mols, in_db, path_ts, path_pma, path_screen, pp_externa
                                                          upper=upper, bin_step=bin_step)):
         continue
 
-    # pharmacophore_validation(mol_act=mol_act,
-    #                          mol_inact=mol_inact,
-    #                          in_adb=in_adb,
-    #                          in_indb=in_indb,
-    #                          path_ts=path_ts,
-    #                          path_pma=path_pma,
-    #                          path_screen_act=screen_act,
-    #                          path_screen_inact=screen_inact,
-    #                          pp_external_stat=pp_external_stat)
+    pharmacophore_validation(mols=in_mols,
+                             in_db=in_db,
+                             path_ts=path_ts,
+                             path_pma=path_pma,
+                             path_screen=path_screen,
+                             pp_external_stat=pp_external_stat)
 
 
 def entry_point():

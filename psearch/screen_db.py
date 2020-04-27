@@ -150,7 +150,7 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 
     comp_names = db.get_mol_names()
 
-    print(comp_names)
+    # print(comp_names)
 
     if ncpu == 1:
         for comp_name in comp_names:
