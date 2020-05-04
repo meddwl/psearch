@@ -124,6 +124,7 @@ def calc_stat(path_mols, path_ts, path_pma, path_screen, out_external):
             continue
 
     df_result = df_result.sort_values(by=['recall', 'F05', 'F2'], ascending=False)
+    df_result = round(df_result, 3)
     df_result.to_csv(out_external, index=None, sep='\t')
     sys.stderr.write(f'{os.path.basename(out_external)}: ({round(time.time() - start_time, 3)}s)\n\n')
 

@@ -223,7 +223,7 @@ def gen_pharm_models(project_dir, in_db, act_trainset, inact_trainset, out_pma,
             _ = save_models_pma(db, df_sub_act, out_pma, bin_step, cluster_num, lower)
 
     num_models = save_models_pma(db, df_sub_act, out_pma, bin_step, cluster_num, lower - 1)
-    sys.stderr.write(f'{cluster_num}: extract {num_models} models passed ({round(time.time()-time_start, 3)}s)\n')
+    sys.stderr.write(f'train set {cluster_num[1:]}: {num_models} models ({round(time.time()-time_start, 3)}s)\n')
     sys.stderr.flush()
 
 
