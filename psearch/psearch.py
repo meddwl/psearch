@@ -56,8 +56,6 @@ def get_items(project_dir, in_db, list_ts, path_pma, tol, upper, bin_step):
 
 
 def creating_pharmacophore(project_dir, in_db, files_ats, files_ints, path_pma, tol, upper, bin_step):
-    # if not os.path.exists(path_pma):
-    #     os.makedirs(path_pma)
     gen_pharm_models(project_dir=project_dir,
                      in_db=in_db,
                      act_trainset=files_ats,

@@ -164,7 +164,8 @@ def save_models_pma(db, df_sub_act, path_pma, bin_step, cluster_num, num_ids):
 
 def gen_pharm_models(project_dir, in_db, act_trainset, inact_trainset, out_pma,
                      tolerance, lower, upper, bin_step, save_models, save_files=False):
-
+    if not os.path.exists(out_pma):
+        os.makedirs(out_pma)
     time_start = time.time()
     # lower - number of model's features
     cluster_num = os.path.splitext(os.path.basename(act_trainset))[0].split('_')[1]  # number of cluster
@@ -234,8 +235,6 @@ if __name__ == '__main__':
         out_model = os.path.join(args.project_dir, 'models')
     else:
         out_model = args.path_models
-    if not os.path.exists(out_model):
-        os.makedirs(out_model)
 
     gen_pharm_models(project_dir=args.project_dir,
                      in_db=args.active_database,
