@@ -141,6 +141,9 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
         if not os.path.exists(output):
             os.makedirs(output, exist_ok=True)
 
+    if output.endswith('.sdf'):  # forcibly set output format
+        output_sdf = True
+
     db = DB(db_fname)
     bin_step = db.get_bin_step()
     models = read_models(queries, output, output_sdf, bin_step, min_features)   # return list of Model namedtuples
