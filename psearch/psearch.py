@@ -18,7 +18,7 @@ def create_parser():
     parser.add_argument('-m', '--input_molecules', metavar='molecules.smi', type=str, required=True,
                         help='path to tab-separated file with SMILES, molecule name and active/inactive '
                              'in the third column.')
-    parser.add_argument('-db', '--input_db', metavar='FILENAME', type=str, required=True,
+    parser.add_argument('-d', '--input_db', metavar='FILENAME', type=str, required=True,
                         help='path to the database with precomputed conformers and pharmacophores for the same '
                              'input file.')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
