@@ -141,6 +141,8 @@ def entry_point():
 
     if not path_pma:
         path_pma = os.path.join(project_dir, 'models')
+    if not os.path.exists(path_pma):
+        os.makedirs(path_pma)
 
     if not path_screen:
         path_screen = os.path.join(project_dir, 'screen')
