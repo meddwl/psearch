@@ -19,7 +19,7 @@ Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophor
 
 
 def create_parser():
-    parser = argparse.ArgumentParser(description='Screen SQLite DB with compounds against pharmacophore queries.',
+    parser = argparse.ArgumentParser(description='Screen DB with compounds against pharmacophore queries.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--dbname', metavar='FILENAME', type=str, required=True,
                         help='input database with generated conformers and pharmacophores.')
