@@ -15,7 +15,7 @@ def create_parser():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--project_dir', type=str, default=None,
                         help='path to a project dir. Directory where all intermediate and output files will be saved.')
-    parser.add_argument('-m', '--input_molecules', metavar='molecules.smi', type=str, required=True,
+    parser.add_argument('-i', '--input_molecules', metavar='molecules.smi', type=str, required=True,
                         help='path to tab-separated file with SMILES, molecule name and active/inactive '
                              'in the third column.')
     parser.add_argument('-d', '--input_db', metavar='FILENAME', type=str, required=True,

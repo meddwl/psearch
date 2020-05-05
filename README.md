@@ -10,7 +10,7 @@ pip install psearch
 
 ## Dependency
 
-`pmapper >= 0.3.1`
+`pmapper >= 0.4.0`
 
 ## Example
 
@@ -18,25 +18,27 @@ pip install psearch
 It is recommended to create an empty dir which would be your `$PROJECT_DIR` and copy an input file to that location.  
 There are two steps of pharmacophore model generation.  
 
-1. Dataset preparation. 
+1. Generation of a database with precomputed conformers and pharmacophores. 
 
 ```python
-prepare_datatset -i $PROJECT_DIR/input.smi -c 4
+gen_db -i input.smi -o input.dat -c 4
 ```
-`-i` - path to the input file  
+`-i` - path to the input SMILES file
+`-o` - path to database (should have extension .dat)  
 `-c` - number of CPUs to use  
-There are some other arguments which one can use. Invoke script with `-h` key to get full information.  
+There are other arguments which one can tune. Invoke script with `-h` key to get full information.  
 
-The script takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, `activity` columns without a header. 
+The script takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, `activity` columns. 
 The third column should contain a word `active` or `inactive`.
-The script splits input compounds on active and inactive subsets, generates stereoisomers and conformers, creates databases of active and inactive compounds with labeled pharmacophore features.  
+The script generates stereoisomers and conformers, creates the database of compounds with labeled pharmacophore features.  
 
 2. Model building.  
 
 ```python
-psearch -p $PROJECT_DIR -c 4
+psearch -p $PROJECT_DIR -m input.smi -d input.dat -c 4
 ```
-`-p` - path to the project dir  
+`-p` - path to the project dir where output and intermediate files will be stored
+`-m` - path to the input SMILES file
 `-c`- number of CPUs to use
 
 There are two other arguments which are worth to mention:  
