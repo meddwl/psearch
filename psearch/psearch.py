@@ -14,12 +14,13 @@ def create_parser():
     parser = argparse.ArgumentParser(description='Ligand-based pharmacophore model building',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--project_dir', type=str, default=None,
-                        help='path to a project dir. Path where will be saved ')
+                        help='path to a project dir. Directory where all intermediate and output files will be saved.')
     parser.add_argument('-m', '--input_molecules', metavar='molecules.smi', type=str, required=True,
                         help='path to tab-separated file with SMILES, molecule name and active/inactive '
                              'in the third column.')
     parser.add_argument('-db', '--input_db', metavar='FILENAME', type=str, required=True,
-                        help='path to shelve database with precomputed conformers and pharmacophores')
+                        help='path to the database with precomputed conformers and pharmacophores for the same '
+                             'input file.')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
                         help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
                              '1 - a single training set will be created from centroids of individual clusters, '
@@ -27,20 +28,20 @@ def create_parser():
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=float, default=1,
                         help='binning step. Default: 1.')
     parser.add_argument('-u', '--upper', metavar='INTEGER', type=int, default=None,
-                        help='upper number of features in generation of pharmacophores.'
-                             'if omitted pharmacophores of maximum complexity will be generated..')
+                        help='limit the upper number of features in generated pharmacophores. '
+                             'If omitted pharmacophores of maximum complexity will be generated.')
     parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', type=float, default=0,
-                        help='tolerance used for calculation of a stereoconfiguration sign.')
+                        help='tolerance used for calculation of a stereoconfiguration sign. Default: 0.')
     parser.add_argument('-thr', '--threshold', metavar='NUMERIC', type=float, default=0.4,
-                        help='threshold for сlustering data by Butina algorithm.')
+                        help='threshold for сlustering data by Butina algorithm. Default: 0.4.')
     parser.add_argument('-pts', '--path_trainset', metavar='path/training/set', type=str, default=None,
-                        help='If omitted, the path will be generated automatically.')
+                        help='If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-pm', '--path_models', metavar='path/to/models/', type=str, default=None,
-                        help='If omitted, the path will be generated automatically.')
+                        help='If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-ps', '--path_screen', metavar='path/to/screen/output', type=str, default=None,
-                        help='If omitted, the path will be generated automatically.')
+                        help='If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-pr', '--path_external_statistics', metavar='path/external/statistics', default=None,
-                        help='If omitted, the path will be generated automatically.')
+                        help='If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
                         help='number of cpus to use for calculation.')
     return parser
