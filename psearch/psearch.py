@@ -66,7 +66,7 @@ def creating_pharmacophore(project_dir, in_db, files_ats, files_ints, path_pma, 
                      lower=3, upper=upper,
                      bin_step=bin_step,
                      save_models=0,
-                     save_files=True)
+                     save_files=False)
 
 
 def pharmacophore_validation(mols, in_db, path_ts, path_pma, path_screen, pp_external_stat):
@@ -89,8 +89,8 @@ def main(project_dir, in_mols, in_db, path_ts, path_pma, path_screen, pp_externa
     if not os.path.exists(path_ts):
         os.makedirs(path_ts)
     list_ts = trainingset_formation(input_mols=in_mols,
+                                    input_db=in_db,
                                     path_ts=path_ts,
-                                    # fdef_fname=fdef_fname,
                                     mode_train_set=mode_train_set,
                                     fcfp4=False,
                                     clust_stat=open(path_clus_stat, 'w'),
@@ -129,7 +129,6 @@ def entry_point():
         if o == "tolerance": tol = int(v)
         if o == "upper": upper = int(v) if v is not None else None
         if o == "threshold": threshold = float(v)
-        # if o == "fdef": fdef_fname = v
         if o == "bin_step": bin_step = int(v)
         if o == "ncpu": ncpu = int(v)
 
