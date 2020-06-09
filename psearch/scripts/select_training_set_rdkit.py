@@ -13,6 +13,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.Pharm2D import Generate
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
 from pmapper.customize import load_factory
+from psearch.database import DB
 
 
 def create_parser():
@@ -20,6 +21,8 @@ def create_parser():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--input_mols', metavar='input_molecules.smi', required=True,
                         help='path to input SMILES file with compounds.')
+    parser.add_argument('-db', '--input_db', metavar='input_database.dat', required=True,
+                        help='path to input database file.')
     parser.add_argument('-o', '--output', metavar='output/path', default=None,
                         help='output path. The folder where will be saved a training set.')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
@@ -40,7 +43,7 @@ def create_parser():
     return parser
 
 
-def read_file(fname, fcfp4):
+def read_file(fname, db_fname, fcfp4):
     """
     :param fname: path to input SMILES file with molecules defined activity
     :param fcfp4:
@@ -51,6 +54,9 @@ def read_file(fname, fcfp4):
     # drop columns if it is
     if not Chem.MolFromSmiles(df.at[0, 'smiles']):
         df.drop(index=0)
+    db = DB(db_fname)
+    mol_names = db.get_mol_names()
+    df = df[df['mol_name'].isin(mol_names)]
 
     if fcfp4:
         df['fp'] = [(AllChem.GetMorganFingerprint(Chem.MolFromSmiles(smiles), 2, useFeatures=True)) for smiles in df['smiles']]
@@ -108,13 +114,13 @@ def get_centroids(cs, df, num):
     return tuple(sorted((df.at[x[0], 'mol_name'], df.at[x[0], 'smiles']) for x in cs if len(x) >= num))
 
 
-def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4,
+def trainingset_formation(input_mols, input_db, path_ts, mode_train_set, fcfp4,
                           clust_stat, threshold, clust_size, max_num_acts):
 
     if (1 not in mode_train_set) and (2 not in mode_train_set):
         return 'Wrong value of parameter mode_train_set. That should be 1 and/or 2.'
 
-    df_mols = read_file(input_mols, fcfp4)
+    df_mols = read_file(input_mols, input_db, fcfp4)
     if df_mols['activity'].dtypes == 'int64':
         df_mols = df_mols.sort_values(by='activity', ascending=True).reset_index(drop=True)
         inact_mark = 0
@@ -178,6 +184,7 @@ def entry_point():
         os.makedirs(output)
 
     trainingset_formation(input_mols=args.input_mols,
+                          input_db=args.input_db,
                           path_ts=output,
                           mode_train_set=args.mode_train_set,
                           fcfp4=args.fcfp4,
