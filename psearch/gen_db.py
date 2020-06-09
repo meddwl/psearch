@@ -24,8 +24,7 @@ from psearch.database import DB
 
 def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
     box_mol_names = set()
-    input_format = 'smi' if fname is None else None
-    for mol, mol_name in read_input(fname, input_format=input_format):
+    for mol, mol_name in read_input(fname):
         if mol_name in box_mol_names:
             sys.stderr.write(f'The molecule named {mol_name} meets the second time and will be omitted\n')
             continue
@@ -104,7 +103,6 @@ def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_d
         mol_dict[i] = mol
         ph_dict[i] = [ph.get_feature_coords() for ph in phs]
         fp_dict[i] = [ph.get_fp() for ph in phs]
-
     return mol_name, mol_dict, ph_dict, fp_dict
 
 
@@ -173,22 +171,29 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
 
 
 def entry_point():
-    parser = argparse.ArgumentParser(description='Generate databased using RDKit.')
+    parser = argparse.ArgumentParser(description='Generate databased using RDKit.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--in_fname', metavar='FILENAME', required=True, type=str,
                         help='input file of SDF or SMILES format (tab-separated).')
     parser.add_argument('-o', '--out_fname', metavar='FILENAME', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
                              '.dat and .dir.')
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=float, default=1,
-                        help='binning step for pharmacophores creation. Default: 1.')
+                        help='binning step for pharmacophores creation.')
     parser.add_argument('-s', '--nstereo', metavar='INTEGER', type=int, default=5,
                         help='maximum number of generated stereoisomers per compound (centers with specified '
-                             'stereoconfogurations wil not be altered). Default: 5.')
+                             'stereoconfogurations wil not be altered). '
+                             'if take 1 and a input file is SDF then stereoisomer will not be generated. '
+                             'If take 1 and an input file is SMILES then one random stereoisomer will be generated. '
+                             'if 0 then database will not be created correctly.')
     parser.add_argument('-n', '--nconf', metavar='INTEGER', type=int, default=50,
-                        help='number of generated conformers. Default: 50.')
+                        help='number of generated conformers. '
+                             'if take 1 and a input file is SDF then conformers will not be generated. '
+                             'If take 1 and an input file is SMILES then one random conformer will be generated. '
+                             'If 0 then database will not be created correctly.')
     parser.add_argument('-e', '--energy_cutoff', metavar='NUMERIC', type=float, default=10,
                         help='conformers with energy difference from the lowest one greater than the specified '
-                             'threshold will be discarded. Default: 10.')
+                             'threshold will be discarded.')
     parser.add_argument('-r', '--rms', metavar='NUMERIC', type=float, default=None,
                         help='only conformers with RMS higher then threshold will be kept. '
                              'Default: None (keep all conformers).')
