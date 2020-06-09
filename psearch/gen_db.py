@@ -174,23 +174,17 @@ def entry_point():
     parser = argparse.ArgumentParser(description='Generate databased using RDKit.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--in_fname', metavar='FILENAME', required=True, type=str,
-                        help='input file of SDF or SMILES format (tab-separated).')
+                        help='input file of 2D SDF or SMILES format (tab-separated).')
     parser.add_argument('-o', '--out_fname', metavar='FILENAME', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
                              '.dat and .dir.')
-    parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=float, default=1,
+    parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=int, default=1,
                         help='binning step for pharmacophores creation.')
     parser.add_argument('-s', '--nstereo', metavar='INTEGER', type=int, default=5,
                         help='maximum number of generated stereoisomers per compound (centers with specified '
-                             'stereoconfogurations wil not be altered). '
-                             'if take 1 and a input file is SDF then stereoisomer will not be generated. '
-                             'If take 1 and an input file is SMILES then one random stereoisomer will be generated. '
-                             'if 0 then database will not be created correctly.')
+                             'stereoconfogurations wil not be altered). ')
     parser.add_argument('-n', '--nconf', metavar='INTEGER', type=int, default=50,
-                        help='number of generated conformers. '
-                             'if take 1 and a input file is SDF then conformers will not be generated. '
-                             'If take 1 and an input file is SMILES then one random conformer will be generated. '
-                             'If 0 then database will not be created correctly.')
+                        help='number of generated conformers. ')
     parser.add_argument('-e', '--energy_cutoff', metavar='NUMERIC', type=float, default=10,
                         help='conformers with energy difference from the lowest one greater than the specified '
                              'threshold will be discarded.')
@@ -208,6 +202,10 @@ def entry_point():
                         help='print progress to STDERR.')
 
     args = parser.parse_args()
+    if (args.bin_step < 0) or (args.nstereo <= 0) or (args.nconf <= 0) or (args.energy_cutoff < 0):
+        sys.exit("--bin_step, --nstereo, --nconf, --energy_cutoff can not be less 0.\n"
+                 "--stereo and/or --nconf can not be set to 0, otherwise, the database will not be created correctly.")
+
     create_db(in_fname=args.in_fname,
               out_fname=args.out_fname,
               nconf=args.nconf,
