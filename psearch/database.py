@@ -49,3 +49,7 @@ class DB:
         names.remove('_bin_step')
         names = [n[:-4] for n in names if n.endswith('_mol')]
         return tuple(names)
+
+    def get_conf_count(self, mol_name):
+        fps = self.get_fp(mol_name)
+        return sum(len(item) for item in fps.values())
