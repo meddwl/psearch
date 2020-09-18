@@ -27,17 +27,16 @@ def create_parser():
                         help='pharmacophore model or models or a directory path. If a directory is specified all '
                              'pma- and xyz-files will be used for screening as pharmacophore models.')
     parser.add_argument('-o', '--output', metavar='FILENAME or DIRNAME', required=True, type=str,
-                        help='a text (.txt) file which will store names of compounds which fit the model or '
-                             'a sdf file which will store matched conformers of compounds. The output format '
-                             'will be recognized by file extension. In the case multiple query models were supplied '
+                        help='a text (.txt) file which will store names of compounds which fit the model. In the case '
+                             'multiple query models were supplied '
                              'this should be the path to a directory where output files will be created to store '
-                             'screening results. In this case file format should be specified by a separate argument. '
-                             'Existed output files will be overwritten.')
+                             'screening results. Existed output files will be overwritten.')
     parser.add_argument('-f', '--min_features', metavar='INTEGER', default=None, type=int,
                         help='minimum number of features with distinct coordinates in models. Models having less '
                              'number of features will be skipped. Default: all models will be screened.')
     parser.add_argument('-z', '--output_sdf', action='store_true', default=False,
-                        help='specify if sdf output with matched conformers is required.')
+                        help='specify if sdf output with matched conformers is required. These files will be created '
+                             'in the place as text files.')
     parser.add_argument('--conf', action='store_true', default=False,
                         help='return all conformers matches as separate hits in a hit list. Required to calculate the '
                              'score by the conformer coverage approach (CCA).')
@@ -59,7 +58,7 @@ def load_confs(mol_name, db):
     return res
 
 
-def read_models(queries, output, is_output_sdf, bin_step, min_features):
+def read_models(queries, output, bin_step, min_features):
 
     if len(queries) == 1 and os.path.isdir(queries[0]):
         input_fnames = tuple(os.path.abspath(os.path.join(queries[0], f)) for f in os.listdir(queries[0]) if f.endswith('.pma') or f.endswith('.xyz'))
@@ -70,8 +69,7 @@ def read_models(queries, output, is_output_sdf, bin_step, min_features):
 
     output = os.path.abspath(output)
     if os.path.isdir(output):
-        ext = '.sdf' if is_output_sdf else '.txt'
-        output_fnames = tuple(os.path.join(output, f + ext) for f in model_names)
+        output_fnames = tuple(os.path.join(output, f + '.txt') for f in model_names)
     else:
         output_fnames = (output, )
 
@@ -117,16 +115,17 @@ def screen(mol_name, db, models, output_sdf, match_first_conf):
 
 
 def save_results(results, output_sdf, db):
-    if not output_sdf:
-        for mol_name, stereo_id, conf_id, out_fname in results:
-            with open(out_fname, 'at') as f:
-                f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
-    else:
+    print(results)
+    for items in results:
+        mol_name, stereo_id, conf_id, out_fname = items[:4]
+        with open(out_fname, 'at') as f:
+            f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
+    if output_sdf:
         for mol_name, stereo_id, conf_id, out_fname, matrix in results:
             m = db.get_mol(mol_name)[stereo_id]
             AllChem.TransformMol(m, matrix, conf_id)
             m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
-            with open(out_fname, 'a') as f:
+            with open(os.path.splitext(out_fname)[0] + '.sdf', 'a') as f:
                 w = Chem.SDWriter(f)
                 w.write(m)
                 w.close()
@@ -146,10 +145,12 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 
     db = DB(db_fname)
     bin_step = db.get_bin_step()
-    models = read_models(queries, output, output_sdf, bin_step, min_features)   # return list of Model namedtuples
+    models = read_models(queries, output, bin_step, min_features)   # return list of Model namedtuples
     for model in models:
         if os.path.isfile(model.output_filename):
             os.remove(model.output_filename)
+        if output_sdf and os.path.isfile(os.path.splitext(model.output_filename)[0] + '.sdf'):
+            os.remove(os.path.splitext(model.output_filename)[0] + '.sdf')
 
     comp_names = db.get_mol_names()
 
