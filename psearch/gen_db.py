@@ -67,12 +67,13 @@ def remove_confs(mol, energy, rms):
 
     kept_ids = [e[0][0]]
     remove_ids = []
-
-    for item in e[1:]:
-        if item[1] - e[0][1] <= energy:
-            kept_ids.append(item[0])
-        else:
-            remove_ids.append(item[0])
+    
+    if energy is not None:
+        for item in e[1:]:
+            if item[1] - e[0][1] <= energy:
+                kept_ids.append(item[0])
+            else:
+                remove_ids.append(item[0])
 
     if rms is not None:
         rms_list = [(i1, i2, AllChem.GetConformerRMS(mol, i1, i2)) for i1, i2 in combinations(kept_ids, 2)]
