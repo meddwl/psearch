@@ -5,7 +5,7 @@ PSearch is a tool to generate 3D ligand-based pharmacophore models and perform v
 ## Installation
 
 ```bash
-pip install psearch
+pip install -U git+https://github.com/meddwl/psearch.git@dev2
 ```
 
 ## Dependency
