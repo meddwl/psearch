@@ -174,6 +174,10 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
                 save_results(res, output_sdf, db)
         p.close()
 
+    # remove output dir if it is empty
+    if os.path.exists(output) and os.path.isdir(output) and not os.listdir(output):
+        os.remove(output)
+
 
 def entry_point():
     parser = create_parser()
