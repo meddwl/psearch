@@ -23,14 +23,17 @@ def create_parser():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--dbname', metavar='FILENAME', type=str, required=True,
                         help='input database with generated conformers and pharmacophores.')
-    parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME', required=True, type=str, nargs='+',
-                        help='pharmacophore model or models or a directory path. If a directory is specified all '
+    parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', required=True, type=str, nargs='+',
+                        help='pharmacophore model(s) or directory path(s). If a directory is specified all '
                              'pma- and xyz-files will be used for screening as pharmacophore models.')
     parser.add_argument('-o', '--output', metavar='FILENAME or DIRNAME', required=True, type=str,
                         help='a text (.txt) file which will store names of compounds which fit the model. In the case '
-                             'multiple query models were supplied '
+                             'multiple query models or directories were supplied as input'
                              'this should be the path to a directory where output files will be created to store '
-                             'screening results. Existed output files will be overwritten.')
+                             'screening results. If multiple directories were specified as input the corresponding '
+                             'directories will be created in the output dir. Names of created  directories will be '
+                             'taken from the bottom level of input directories, e.g. path/to/model/ will be stored in '
+                             'output_dir/model. Beware, existed output files/directories will be overwritten.')
     parser.add_argument('-f', '--min_features', metavar='INTEGER', default=None, type=int,
                         help='minimum number of features with distinct coordinates in models. Models having less '
                              'number of features will be skipped. Default: all models will be screened.')
@@ -60,32 +63,34 @@ def load_confs(mol_name, db):
 
 def read_models(queries, output, bin_step, min_features):
 
-    if len(queries) == 1 and os.path.isdir(queries[0]):
-        input_fnames = tuple(os.path.abspath(os.path.join(queries[0], f)) for f in os.listdir(queries[0]) if f.endswith('.pma') or f.endswith('.xyz'))
+    if all(os.path.isdir(item) for item in queries):
+        input_fnames = []
+        output_fnames = []
+        for dname in queries:
+            dname = os.path.abspath(dname)
+            for f in os.listdir(dname):
+                if os.path.isfile(os.path.join(dname, f)) and (f.endswith('.pma') or f.endswith('.xyz')):
+                    input_fnames.append(os.path.join(dname, f))
+                    output_fnames.append(os.path.join(output, os.path.basename(dname), os.path.splitext(os.path.basename(f))[0] + '.txt'))
+    elif all(os.path.isfile(item) for item in queries):
+        input_fnames = tuple(os.path.abspath(f) for f in queries if f.endswith('.pma') or f.endswith('.xyz'))
+        output_fnames = tuple(os.path.join(output, os.path.splitext(os.path.basename(f))[0] + '.txt') for f in input_fnames)
     else:
-        input_fnames = tuple(os.path.abspath(f) for f in queries if os.path.isfile(f) and f.endswith('.pma'))
-
-    model_names = tuple(os.path.splitext(os.path.basename(f))[0] for f in input_fnames)
-
-    output = os.path.abspath(output)
-    if os.path.isdir(output):
-        output_fnames = tuple(os.path.join(output, f + '.txt') for f in model_names)
-    else:
-        output_fnames = (output, )
+        raise ValueError('Input queries should be all either files or directories not a mix.')
 
     res = []
-    for model_name, input_fname, output_fname in zip(model_names, input_fnames, output_fnames):
+    for input_fname, output_fname in zip(input_fnames, output_fnames):
         p = Pharmacophore()
         if input_fname.endswith('.pma'):
             p.load_from_pma(input_fname)
         elif input_fname.endswith('.xyz'):
             p.load_from_xyz(input_fname)
         # skip models with less number of features with distinct coordinates that given
-        if min_features is not None and len(set(xyz for label,xyz in p.get_feature_coords())) < min_features:
+        if min_features is not None and len(set(xyz for label, xyz in p.get_feature_coords())) < min_features:
             continue
         p.update(bin_step=bin_step)
         fp = p.get_fp()
-        res.append(Model(model_name, fp, p, output_fname))
+        res.append(Model(input_fname, fp, p, output_fname))
 
     return res
 
@@ -115,9 +120,10 @@ def screen(mol_name, db, models, output_sdf, match_first_conf):
 
 
 def save_results(results, output_sdf, db):
-    print(results)
     for items in results:
         mol_name, stereo_id, conf_id, out_fname = items[:4]
+        if not os.path.exists(os.path.dirname(out_fname)):
+            os.makedirs(os.path.dirname(out_fname))
         with open(out_fname, 'at') as f:
             f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
     if output_sdf:
