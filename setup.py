@@ -31,6 +31,7 @@ setuptools.setup(
                       ['psearch = psearch.psearch:entry_point',
                        'gen_db = psearch.gen_db:entry_point',
                        'screen_db = psearch.screen_db:entry_point',
+                       'prediction = psearch.prediction:entry_point',
                        'external_stat = psearch.scripts.external_statistics:entry_point']},
     include_package_data=True
 )

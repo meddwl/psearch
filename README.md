@@ -53,7 +53,7 @@ This will create several dirs within `$PROJECT_DIR`. `models` contains generated
 2. Virtual screening.
   
 ```python
-screen_db -d compounds.db -q $PROJECT_DIR/models/ -o screen_results/ -c 4
+screen_db -d compounds.dat -q $PROJECT_DIR/models/ -o screen_results/ -c 4
 ```
 `-d` - input generated database  
 `-q` - pharmacophore model or models or a directory with models. If a directory would be specified all pma- and xyz-files will be recognized as pharmacophores and will be used for screening.  
