@@ -13,7 +13,8 @@ import argparse
 
 def calc_probability(df_vs, df_precision, target_id):
     df = df_vs.multiply(df_precision['precision'], axis=0)
-    df.loc[target_id] = df.sum(axis=0)
+
+    df.loc[target_id] = df.mean(axis=0, skipna=True)
     return round(df.loc[target_id].transpose(), 3)
 
 
@@ -27,7 +28,6 @@ def input_processing(pp_vs, target_id, models_list):
         mols = [i.strip().split()[0] for i in open(os.path.join(pp_vs_t, ff)).readlines()]
         for mol_id in mols:
             df.at[ph, mol_id] = 1
-    df.fillna(0, inplace=True)
     return df
 
 
