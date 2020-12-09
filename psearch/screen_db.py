@@ -156,7 +156,7 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
         if os.path.isfile(model.output_filename):
             os.remove(model.output_filename)
         if output_sdf and os.path.isfile(os.path.splitext(model.output_filename)[0] + '.sdf'):
-            os.remove(os.path.splitext(model.output_filename)[0] + '.sdf')
+            os.rmdir(os.path.splitext(model.output_filename)[0] + '.sdf')
 
     comp_names = db.get_mol_names()
 
