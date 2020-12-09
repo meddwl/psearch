@@ -41,7 +41,7 @@ def main(pp_vs, pp_models_stat, pp_output):
             continue
         df_res = calc_probability(df_vs, df_models, target_id)
         res = res.merge(df_res, left_index=True, right_index=True, how='outer')
-    res.index.name = 'pharmacophores_id'
+    res.index.name = 'mol_id'
     res.to_csv(pp_output, sep='\t')
 
 
