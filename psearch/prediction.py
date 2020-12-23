@@ -17,7 +17,8 @@ def calc_probability(df_vs, df_precision, target_id, scoring_scheme):
         df.loc[target_id] = df.mean(axis=0, skipna=True)
     elif scoring_scheme == 'max':
         df.loc[target_id] = df.max(axis=0, skipna=True)
-    return round(df.loc[target_id].transpose(), 3)
+    df = df.loc[target_id]
+    return round(df, 3)
 
 
 def input_processing(pp_vs, target_id, models_list):
@@ -43,7 +44,9 @@ def main(pp_vs, pp_models_stat, scoring_scheme, pp_output):
             continue
         df_res = calc_probability(df_vs, df_models, target_id, scoring_scheme)
         res = res.merge(df_res, left_index=True, right_index=True, how='outer')
-    res.index.name = 'mol_id'
+    res = res.transpose()
+    res.index.name = 'target'
+    res.sort_values(by=res.columns.tolist()[0], ascending=False, inplace=True)
     res.to_csv(pp_output, sep='\t')
 
 
