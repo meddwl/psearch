@@ -13,37 +13,34 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.Pharm2D import Generate
 from rdkit.Chem.Pharm2D.SigFactory import SigFactory
 from pmapper.customize import load_factory
-from psearch.database import DB
 
 
 def create_parser():
     parser = argparse.ArgumentParser(description='select compounds for training set',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--input_mols', metavar='input_molecules.smi', required=True,
-                        help='path to input SMILES file with compounds.')
-    parser.add_argument('-db', '--input_db', metavar='input_database.dat', required=True,
-                        help='path to input database file.')
+                        help='Path to input SMILES file with compounds.')
     parser.add_argument('-o', '--output', metavar='output/path', default=None,
-                        help='output path. The folder where will be saved a training set.')
+                        help='Output path. The folder where will be saved a training set.')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
                         help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
                              '1 - a single training set will be created from centroids of individual clusters, '
-                             '2 - multiple training sets will be created, one per cluster. Default: 1 2.')
+                             '2 - multiple training sets will be created, one per cluster.')
     parser.add_argument('--fcfp4', action='store_true', default=False,
-                        help='if set FCFP4 fingerprints will be used for compound clustering, '
+                        help='If set FCFP4 fingerprints will be used for compound clustering, '
                              'otherwise pharmacophore fingerprints will be used.')
-    parser.add_argument('-s', '--cluster_stat', default=None,
-                        help='if designate path to file then save cluster statistics')
     parser.add_argument('-t', '--threshold_clust', type=float, default=0.4,
                         help='threshold for clustering data by Butina algorithm')
-    parser.add_argument('-clz', '--clust_size', type=int, default=5,
-                        help='minimum cluster size to extract centroids for the training set')
-    parser.add_argument('-m', '--max_acts', type=int, default=5,
-                        help='maximum number of active compounds for training set')
+    parser.add_argument('-d', '--designated', type=str, nargs='+', default=['active', 'inactive'],
+                        help='How active and inactive molecules are designated in the source file.'
+                             'The first symbol is for the designation of active molecules,'
+                             'the second one is for the designation of inactive molecules')
+    parser.add_argument('-cl', '--cluster_stat', default=None,
+                        help='If designate path to file then save cluster statistics')
     return parser
 
 
-def read_file(fname, db_fname, fcfp4):
+def read_file(fname, fcfp4):
     """
     :param fname: path to input SMILES file with molecules defined activity
     :param fcfp4:
@@ -54,9 +51,6 @@ def read_file(fname, db_fname, fcfp4):
     # drop columns if it is
     if not Chem.MolFromSmiles(df.at[0, 'smiles']):
         df.drop(index=0)
-    db = DB(db_fname)
-    mol_names = db.get_mol_names()
-    df = df[df['mol_name'].isin(mol_names)]
 
     if fcfp4:
         df['fp'] = [(AllChem.GetMorganFingerprint(Chem.MolFromSmiles(smiles), 2, useFeatures=True)) for smiles in df['smiles']]
@@ -79,34 +73,26 @@ def gen_cluster_subset_butina(fps, cutoff):
     return cs  # returns tuple of tuples with sequential numbers of compounds in each cluster
 
 
-def save_cluster_stat(cs_index, len_act, clust_stat):
+def save_cluster_stat(cs_index, df, index_acts, clust_stat):
+    clust_stat.write("""#The file contains statistical information about the cluster 
+#and the index of the molecule according to its location in the input file \n""")
     for i, cluster in enumerate(cs_index):
         i_act = 0
         for el in cluster:
-            if el in range(len_act):
+            if el in index_acts:
                 i_act += 1
-        # print('cluster №%i, cluster length %i, share of active %.2f' % (i, len(cluster), i_act/len(cluster)))
-        # print(cluster, '\n')
-        clust_stat.write(f'cluster {i}, cluster length {len(cluster)}, share of active {i_act/len(cluster)} \n')
+        clust_stat.write(f'\ncluster {i}, cluster length {len(cluster)}, share of active {round(i_act/len(cluster), 3)}\n')
+        clust_stat.write(','.join(map(str, [df.at[x, 'index'] for x in cluster])) + '\n')
 
 
-def diff_binding_mode(cs, df_mols, len_act, inact_centroids, min_num):
-    # mol_names contains actives and then inactives
-    # therefore len_act is equal to the number of actives to select them from the list of mol names
+def diff_binding_mode(cs, df_mols, index_acts, inact_centroids, min_num):
     ts_full = []
     for i, c in enumerate(cs):
-        if len(c) >= min_num:
-            ts_mol_name_act = []
-            ts_mol_name_inact = []
-            for x in c:
-                if x in range(len_act) and len(ts_mol_name_act) < min_num:
-                    ts_mol_name_act.append((df_mols.at[x, 'mol_name'], df_mols.at[x, 'smiles']))
-                elif x not in range(len_act) and len(ts_mol_name_inact) < min_num:
-                    ts_mol_name_inact.append((df_mols.at[x, 'mol_name'], df_mols.at[x, 'smiles']))
-
-            ts_mol_name_inact = set(ts_mol_name_inact) | set(inact_centroids)
-            if len(ts_mol_name_act) == min_num:
-                ts_full.append((i, tuple(sorted(ts_mol_name_act)), tuple(sorted(ts_mol_name_inact))))
+        if len(set(c).intersection(index_acts)) >= min_num:
+            ts_mol_name_act = tuple((df_mols.at[x, 'mol_name'], df_mols.at[x, 'smiles']) for x in list(set(c).intersection(index_acts))[:5])
+            ts_mol_name_inact = [(df_mols.at[x, 'mol_name'], df_mols.at[x, 'smiles']) for x in list(set(c).difference(index_acts))[:5]]
+            ts_mol_name_inact = tuple(set(ts_mol_name_inact).union(set(inact_centroids)))
+            ts_full.append((i, ts_mol_name_act, ts_mol_name_inact))
     return tuple(ts_full)
 
 
@@ -114,61 +100,48 @@ def get_centroids(cs, df, num):
     return tuple(sorted((df.at[x[0], 'mol_name'], df.at[x[0], 'smiles']) for x in cs if len(x) >= num))
 
 
-def trainingset_formation(input_mols, input_db, path_ts, mode_train_set, fcfp4,
-                          clust_stat, threshold, clust_size, max_num_acts):
-
+def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4, clust_stat, threshold, designating):
+    clust_size, max_num_acts = 5, 5
     if (1 not in mode_train_set) and (2 not in mode_train_set):
         return 'Wrong value of parameter mode_train_set. That should be 1 and/or 2.'
 
-    df_mols = read_file(input_mols, input_db, fcfp4)
-    if df_mols['activity'].dtypes == 'int64':
-        df_mols = df_mols.sort_values(by='activity', ascending=True).reset_index(drop=True)
-        inact_mark = 0
-    else:
-        df_mols = df_mols.sort_values(by='activity').reset_index(drop=True)
-        inact_mark = 'inactive'
-    len_acts = df_mols[df_mols['activity'] != inact_mark].shape[0]
-    list_ts = []
+    df_mols = read_file(input_mols, fcfp4)
+    df_inact = df_mols[df_mols['activity'] == designating[1]].reset_index()
+    df_act = df_mols[df_mols['activity'] == designating[0]].reset_index()
+    df_mols = df_act.append(df_inact).reset_index(drop=True)
 
+    list_ts = []
     if 2 in mode_train_set:
         cs = gen_cluster_subset_butina(df_mols['fp'].tolist(), threshold)
-        df_inact = df_mols[df_mols['activity'] == inact_mark].reset_index(drop=True)
         cs_inact = gen_cluster_subset_butina(df_inact['fp'].tolist(), threshold)
-        inact_centroids = get_centroids(cs_inact, df_inact, clust_size)  # tuple of tuples with mol names and their SMILES
+        centroids_inact = get_centroids(cs_inact, df_inact, clust_size)  # tuple of tuples with mol names and their SMILES
 
         if clust_stat:
-            save_cluster_stat(cs, len_acts-1, clust_stat)
+            save_cluster_stat(cs, df_mols, range(df_act.shape[0]), clust_stat)
 
-        ts_full = diff_binding_mode(cs, df_mols, len_acts-1, inact_centroids, max_num_acts)
+        ts_full = diff_binding_mode(cs, df_mols, range(df_act.shape[0]), centroids_inact, max_num_acts)
         for i, act_ts, inact_ts in ts_full:
-            out_act = os.path.join(path_ts, f'active_t{i}.smi')
-            out_inact = os.path.join(path_ts, f'inactive_t{i}.smi')
-            list_ts.append([out_act, out_inact])
-            with open(out_act, 'wt') as f:
-                f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in act_ts))
-            with open(out_inact, 'wt') as f:
-                f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in inact_ts))
+            output = os.path.join(path_ts, f't{i}.smi')
+            list_ts.append(output)
+            with open(output, 'wt') as f:
+                f.write('\n'.join(f'{smiles}\t{mol_name}\tactive' for mol_name, smiles in act_ts) + '\n')
+                f.write('\n'.join(f'{smiles}\t{mol_name}\tinactive' for mol_name, smiles in inact_ts))
 
     if 1 in mode_train_set:
-        out_act = os.path.join(path_ts, 'active_centroid.smi')
-        out_inact = os.path.join(path_ts, 'inactive_centroid.smi')
-
+        output = os.path.join(path_ts, 'centroid.smi')
         # process actives
-        df_act = df_mols[df_mols['activity'] != inact_mark].reset_index(drop=True)
-        cs = gen_cluster_subset_butina(df_act['fp'].tolist(), threshold)
-        centroids = get_centroids(cs, df_act, clust_size)
-        if len(centroids) < clust_size:
+        cs_act = gen_cluster_subset_butina(df_act['fp'].tolist(), threshold)
+        centroids_act = get_centroids(cs_act, df_act, clust_size)
+        if len(centroids_act) < max_num_acts:
             return list_ts
-        with open(out_act, 'wt') as f:
-            f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in centroids))
-
         # process inactives
-        df_inact = df_mols[df_mols['activity'] == inact_mark].reset_index(drop=True)
-        cs = gen_cluster_subset_butina(df_inact['fp'].tolist(), threshold)
-        centroids = get_centroids(cs, df_inact, clust_size)
-        with open(out_inact, 'wt') as f:
-            f.write('\n'.join(f'{smiles}\t{mol_name}' for mol_name, smiles in centroids))
-        list_ts.append([out_act, out_inact])
+        if 2 not in mode_train_set:
+            cs_inact = gen_cluster_subset_butina(df_inact['fp'].tolist(), threshold)
+            centroids_inact = get_centroids(cs_inact, df_inact, clust_size)
+        with open(output, 'wt') as f:
+            f.write('\n'.join(f'{smiles}\t{mol_name}\tactive' for mol_name, smiles in centroids_act) + '\n')
+            f.write('\n'.join(f'{smiles}\t{mol_name}\tinactive' for mol_name, smiles in centroids_inact))
+        list_ts.append(output)
     return list_ts
 
 
@@ -184,15 +157,14 @@ def entry_point():
         os.makedirs(output)
 
     trainingset_formation(input_mols=args.input_mols,
-                          input_db=args.input_db,
                           path_ts=output,
                           mode_train_set=args.mode_train_set,
                           fcfp4=args.fcfp4,
                           clust_stat=open(args.cluster_stat, 'wt') if args.cluster_stat else None,
                           threshold=args.threshold_clust,
-                          clust_size=args.clust_size,
-                          max_num_acts=args.max_acts)
-
-
+                          designating=args.designated)
+import time
+start = time.time()
 if __name__ == '__main__':
     entry_point()
+print(time.strftime("%H:%M:%S", time.gmtime((time.time() - start))))
