@@ -138,8 +138,7 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
     try:
         for i, (mol_name, mol_dict, ph_dict, fp_dict) in enumerate(
                 p.imap_unordered(map_gen_data, prep_input(in_fname, nconf, nstereo, energy, rms, seed, bin_step,
-                                                          pharm_def),
-                                 chunksize=10), 1):
+                                                          pharm_def), chunksize=10), 1):
             if output_file_type == 'shelve':
                 db.write_mol(mol_name, mol_dict)
                 db.write_pharm(mol_name, ph_dict)
@@ -186,7 +185,7 @@ def entry_point():
                              'stereoconfogurations wil not be altered). ')
     parser.add_argument('-n', '--nconf', metavar='INTEGER', type=int, default=50,
                         help='number of generated conformers. ')
-    parser.add_argument('-e', '--energy_cutoff', metavar='NUMERIC', type=float, default=10,
+    parser.add_argument('-e', '--energy_cutoff', metavar='NUMERIC', type=float, default=None,
                         help='conformers with energy difference from the lowest one greater than the specified '
                              'threshold will be discarded.')
     parser.add_argument('-r', '--rms', metavar='NUMERIC', type=float, default=None,
@@ -198,14 +197,15 @@ def entry_point():
                         help='pharmacophore feature definition. If not specified default pmapper definitions '
                              'will be used.')
     parser.add_argument('-c', '--ncpu', metavar='INTEGER', type=int, default=1,
-                        help='number of cpu to use for calculation. Default: 1.')
+                        help='number of cpu to use for calculation.')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='print progress to STDERR.')
 
     args = parser.parse_args()
-    if (args.bin_step < 0) or (args.nstereo <= 0) or (args.nconf <= 0) or (args.energy_cutoff < 0):
-        sys.exit("--bin_step, --nstereo, --nconf, --energy_cutoff can not be less 0.\n"
+    if (args.bin_step < 0) or (args.nstereo <= 0) or (args.nconf <= 0):
+        sys.exit("--bin_step, --nstereo, --nconf can not be less 0.\n"
                  "--stereo and/or --nconf can not be set to 0, otherwise, the database will not be created correctly.")
+    os.makedirs(os.path.dirname(args.out_fname), exist_ok=True)
 
     create_db(in_fname=args.in_fname,
               out_fname=args.out_fname,

@@ -38,7 +38,7 @@ def main(pp_vs, pp_models_stat, scoring_scheme, pp_output):
     df_models_stat = pd.read_csv(pp_models_stat, sep='\t', index_col='model')
     res = pd.DataFrame()
     for target_id in os.listdir(pp_vs):
-        df_models = df_models_stat[df_models_stat['protein'] == target_id]
+        df_models = df_models_stat[df_models_stat['target'] == target_id]
         df_vs = input_processing(pp_vs, target_id, df_models.index.tolist())
         if df_vs.empty:
             continue

@@ -6,6 +6,7 @@
 
 import os
 import argparse
+import numpy as np
 import pandas as pd
 from rdkit import Chem, DataStructs
 from rdkit.ML.Cluster import Butina
@@ -19,9 +20,12 @@ def create_parser():
     parser = argparse.ArgumentParser(description='select compounds for training set',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--input_mols', metavar='input_molecules.smi', required=True,
-                        help='Path to input SMILES file with compounds.')
+                        help='The script takes as input a tab-separated SMILES file containing `SMILES`, '
+                             '`compound id`, `activity` columns. '
+                             'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactive ones.')
     parser.add_argument('-o', '--output', metavar='output/path', default=None,
-                        help='Output path. The folder where will be saved a training set.')
+                        help='An output path to the folder where will be saved a training set.'
+                             'If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
                         help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
                              '1 - a single training set will be created from centroids of individual clusters, '
@@ -29,29 +33,19 @@ def create_parser():
     parser.add_argument('--fcfp4', action='store_true', default=False,
                         help='If set FCFP4 fingerprints will be used for compound clustering, '
                              'otherwise pharmacophore fingerprints will be used.')
-    parser.add_argument('-t', '--threshold_clust', type=float, default=0.4,
+    parser.add_argument('-thr', '--threshold_clust', type=float, default=0.4,
                         help='threshold for clustering data by Butina algorithm')
-    parser.add_argument('-d', '--designated', type=str, nargs='+', default=['active', 'inactive'],
-                        help='How active and inactive molecules are designated in the source file.'
-                             'The first symbol is for the designation of active molecules,'
-                             'the second one is for the designation of inactive molecules')
-    parser.add_argument('-cl', '--cluster_stat', default=None,
-                        help='If designate path to file then save cluster statistics')
+    parser.add_argument('-s', '--save_statistics', default=None,
+                        help='If writen path to file then cluster statistics will be saved into this file')
     return parser
 
 
 def read_file(fname, fcfp4):
-    """
-    :param fname: path to input SMILES file with molecules defined activity
-    :param fcfp4:
-    :return: pandas.DataFrame, columns = mol_name, smiles, activity, fp
-    """
     df = pd.read_csv(fname, sep='\t', header=None)
     df.rename(columns={0: 'smiles', 1: 'mol_name', 2: 'activity'}, inplace=True)
-    # drop columns if it is
     if not Chem.MolFromSmiles(df.at[0, 'smiles']):
-        df.drop(index=0)
-
+        df.drop(index=0, inplace=True)
+    df['activity'] = df['activity'].astype(np.int64)
     if fcfp4:
         df['fp'] = [(AllChem.GetMorganFingerprint(Chem.MolFromSmiles(smiles), 2, useFeatures=True)) for smiles in df['smiles']]
     else:
@@ -100,14 +94,15 @@ def get_centroids(cs, df, num):
     return tuple(sorted((df.at[x[0], 'mol_name'], df.at[x[0], 'smiles']) for x in cs if len(x) >= num))
 
 
-def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4, clust_stat, threshold, designating):
+def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4, clust_stat, threshold):
+    os.makedirs(path_ts, exist_ok=True)
     clust_size, max_num_acts = 5, 5
     if (1 not in mode_train_set) and (2 not in mode_train_set):
         return 'Wrong value of parameter mode_train_set. That should be 1 and/or 2.'
 
     df_mols = read_file(input_mols, fcfp4)
-    df_inact = df_mols[df_mols['activity'] == designating[1]].reset_index()
-    df_act = df_mols[df_mols['activity'] == designating[0]].reset_index()
+    df_inact = df_mols[df_mols['activity'] == 0].reset_index()
+    df_act = df_mols[df_mols['activity'] == 1].reset_index()
     df_mols = df_act.append(df_inact).reset_index(drop=True)
 
     list_ts = []
@@ -124,11 +119,11 @@ def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4, clust_stat
             output = os.path.join(path_ts, f't{i}.smi')
             list_ts.append(output)
             with open(output, 'wt') as f:
-                f.write('\n'.join(f'{smiles}\t{mol_name}\tactive' for mol_name, smiles in act_ts) + '\n')
-                f.write('\n'.join(f'{smiles}\t{mol_name}\tinactive' for mol_name, smiles in inact_ts))
+                f.write('\n'.join(f'{smiles}\t{mol_name}\t{1}' for mol_name, smiles in act_ts) + '\n')
+                f.write('\n'.join(f'{smiles}\t{mol_name}\t{0}' for mol_name, smiles in inact_ts))
 
     if 1 in mode_train_set:
-        output = os.path.join(path_ts, 'centroid.smi')
+        output = os.path.join(path_ts, 'centroids.smi')
         # process actives
         cs_act = gen_cluster_subset_butina(df_act['fp'].tolist(), threshold)
         centroids_act = get_centroids(cs_act, df_act, clust_size)
@@ -139,8 +134,8 @@ def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4, clust_stat
             cs_inact = gen_cluster_subset_butina(df_inact['fp'].tolist(), threshold)
             centroids_inact = get_centroids(cs_inact, df_inact, clust_size)
         with open(output, 'wt') as f:
-            f.write('\n'.join(f'{smiles}\t{mol_name}\tactive' for mol_name, smiles in centroids_act) + '\n')
-            f.write('\n'.join(f'{smiles}\t{mol_name}\tinactive' for mol_name, smiles in centroids_inact))
+            f.write('\n'.join(f'{smiles}\t{mol_name}\t{1}' for mol_name, smiles in centroids_act) + '\n')
+            f.write('\n'.join(f'{smiles}\t{mol_name}\t{0}' for mol_name, smiles in centroids_inact))
         list_ts.append(output)
     return list_ts
 
@@ -148,23 +143,13 @@ def trainingset_formation(input_mols, path_ts, mode_train_set, fcfp4, clust_stat
 def entry_point():
     parser = create_parser()
     args = parser.parse_args()
-
-    if not args.output:
-        output = os.path.join(os.path.dirname(os.path.abspath(args.input_mols)), 'trainset')
-    else:
-        output = args.output
-    if not os.path.exists(output):
-        os.makedirs(output)
-
-    trainingset_formation(input_mols=args.input_mols,
-                          path_ts=output,
+    trainingset_formation(input_mols=os.path.abspath(args.input_mols),
+                          path_ts=args.output if args.output else os.path.join(os.path.dirname(os.path.abspath(args.input_mols)), 'trainset'),
                           mode_train_set=args.mode_train_set,
                           fcfp4=args.fcfp4,
-                          clust_stat=open(args.cluster_stat, 'wt') if args.cluster_stat else None,
-                          threshold=args.threshold_clust,
-                          designating=args.designated)
-import time
-start = time.time()
+                          clust_stat=open(args.save_statistics, 'wt') if args.save_statistics else None,
+                          threshold=args.threshold_clust)
+
+
 if __name__ == '__main__':
     entry_point()
-print(time.strftime("%H:%M:%S", time.gmtime((time.time() - start))))

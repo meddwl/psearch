@@ -1,2 +1,0 @@
-pharmacophores_id	CHEMBL205
-Z2044051982	0.551

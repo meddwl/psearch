@@ -182,7 +182,6 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 def entry_point():
     parser = create_parser()
     args = parser.parse_args()
-
     screen_db(db_fname=args.dbname,
               queries=args.query,
               output=args.output,
