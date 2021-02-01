@@ -7,34 +7,15 @@
 import os
 import sys
 import time
-import json
-import pandas as pd
-import numpy as np
 import argparse
-from pmapper.pharmacophore import Pharmacophore as P
+import pandas as pd
 from rdkit import Chem
+from pmapper.pharmacophore import Pharmacophore as P
 
 
-def create_parser():
-    parser = argparse.ArgumentParser(description='calculate external statistics',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-m', '--path_molecules', metavar='molecules.smi', required=True,
-                        help='.smi file with active and inactive molecules.')
-    parser.add_argument('-t', '--path_trainset', metavar='path/to/trainset', required=True,
-                        help='path to folders with files of training sets.')
-    parser.add_argument('-p', '--path_to_pma', metavar='path/to/models', required=True,
-                        help='path to pma files')
-    parser.add_argument('-s', '--path_screen', metavar='path/to/screen', required=True,
-                        help='path to screen results')
-    parser.add_argument('-o', '--out_external', metavar='external_statistics.txt', default=None,
-                        help='output text file where will be saved external statistics')
-    return parser
-
-
-def max_edge(in_model):
-    model = os.path.abspath(in_model)
+def max_edge(model):
     p = P()
-    p.load_from_pma(model)
+    p.load_from_xyz(model)
     coords = p.get_feature_coords()
     edge = 0
     for i, c1 in enumerate(coords):
@@ -45,30 +26,35 @@ def max_edge(in_model):
     return edge
 
 
-def get_external_stat(path_mols, ts_act, ts_inact, in_pma, in_screen):
-    medge = max_edge(in_pma)
-    model = os.path.splitext(os.path.basename(in_pma))[0]
-    with open(in_pma) as fpma:
-        d = json.loads(fpma.readline().strip())
-        labels = ''.join(i[0] for i in d['feature_coords'])
-        num_uniq_features = len(set(tuple(feature[1]) for feature in d['feature_coords']))
+def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
+    terget_id = os.path.splitext(os.path.basename(path_mols))[0]
+    medge = max_edge(path_pma)
+    num_uniq_features = set()
+    labels = ''
+    with open(path_pma) as f:
+        for line in f.readlines()[2:]:
+            label, *coords = line.strip().split()
+            labels += label
+            num_uniq_features.add(tuple(map(float, coords)))
+    num_uniq_features = len(num_uniq_features)
 
-    ts_act_mol = [ii.strip().split()[1] for ii in open(ts_act).readlines()]
-    ts_inact_mol = [ii.strip().split()[1] for ii in open(ts_inact).readlines()]
+    ts_act_mol = []
+    ts_inact_mol = []
+    for ii in open(path_ts).readlines():
+        line = ii.strip().split()
+        if line[-1] == 1:
+            ts_act_mol.append(line[1])
+        else:
+            ts_inact_mol.append(line[1])
 
-    df_mols = pd.read_csv(path_mols, sep='\t', header=None)
-    df_mols.rename(columns={0: 'smiles', 1: 'mol_name', 2: 'activity'}, inplace=True)
+    df_mols = pd.read_csv(path_mols, sep='\t', header=None).rename(columns={0: 'smiles', 1: 'mol_name', 2: 'activity'})
     if not Chem.MolFromSmiles(df_mols.at[0, 'smiles']):
-        df_mols.drop(index=0)
-    if df_mols['activity'].dtypes == 'int64':
-        df_act = df_mols[(df_mols['activity'] == 1) & (~df_mols['mol_name'].isin(ts_act_mol))]
-        df_inact = df_mols[(df_mols['activity'] == 0) & (~df_mols['mol_name'].isin(ts_inact_mol))]
-    else:
-        df_act = df_mols[(df_mols['activity'] == 'active') & (~df_mols['mol_name'].isin(ts_act_mol))]
-        df_inact = df_mols[(df_mols['activity'] == 'inactive') & (~df_mols['mol_name'].isin(ts_inact_mol))]
+        df_mols.drop(index=0, inplace=True)
+    df_act = df_mols[(df_mols['activity'] == '1') & (~df_mols['mol_name'].isin(ts_act_mol))]
+    df_inact = df_mols[(df_mols['activity'] == '0') & (~df_mols['mol_name'].isin(ts_inact_mol))]
 
-    if os.path.exists(in_screen):
-        res_screen = [ii.strip().split()[0] for ii in open(in_screen).readlines()]
+    if os.path.exists(pp_screen):
+        res_screen = [ii.strip().split()[0] for ii in open(pp_screen).readlines()]
         act_screen = set(res_screen) & set(df_act['mol_name'])
         inact_screen = set(res_screen) & set(df_inact['mol_name'])
     else:
@@ -79,49 +65,46 @@ def get_external_stat(path_mols, ts_act, ts_inact, in_pma, in_screen):
     n = df_inact.shape[0]
     tp = len(act_screen)
     fp = len(inact_screen)
-    # fn = p - tp
     tn = n - fp
 
     recall = tp / p
     tnr = tn / n
     fpr = fp / n
     ba = (recall + tnr) / 2
-    # accuracy = (tp + tn) / (p + n)
 
-    if tp == 0 and fp == 0:
-        precision = -1
-        ef = -1
-        f1 = -1
-        f2 = -1
-        f05 = -1
-    else:
+    try:
         precision = tp / (tp + fp)
+    except ZeroDivisionError:
+        precision = 'NaN'
+
+    if precision != 'NaN':
         ef = precision / (p / (p + n))
         f1 = (2 * precision * recall) / (precision + recall)
         f2 = (5 * precision * recall) / (4 * precision + recall)
         f05 = (1.25 * precision * recall) / (0.25 * precision + recall)
+    else:
+        ef, f1, f2, f05 = 'NaN', 'NaN', 'NaN', 'NaN'
+    return terget_id, model_id, tp, fp, p, n, precision, recall, fpr, f1, f2, f05, ba, ef, num_uniq_features, medge, labels
 
-    return [model, tp, fp, p, n, precision, fpr, recall, f1, f2, f05, ba, ef, num_uniq_features, medge, labels]
 
-
-def calc_stat(path_mols, path_ts, path_pma, path_screen, out_external):
+def calc_stat(path_mols, path_ts, pp_models, path_screen, out_external):
     start_time = time.time()
-    if not os.path.exists(os.path.dirname(out_external)):
-        os.makedirs(os.path.dirname(out_external))
-
-    df_result = pd.DataFrame(columns=['model', 'TP', 'FP', 'P', 'N', 'precision', 'FPR', 'recall',
-                                      'F1', 'F2', 'F05', 'BA', 'EF', 'num_uniq_F', 'max_edge', 'features'])
-
-    for enum, in_pma in enumerate(os.listdir(path_pma)):
-        ppath = (os.path.join(path_ts, f'active_{in_pma.split("_")[0]}.smi'),
-                 os.path.join(path_ts, f'inactive_{in_pma.split("_")[0]}.smi'),
-                 os.path.join(path_screen, f'{os.path.splitext(in_pma)[0]}.txt'),
-                 os.path.abspath(os.path.join(path_pma, in_pma)))
-        result = get_external_stat(path_mols, ppath[0], ppath[1], ppath[3], ppath[2])
-        if result:
-            df_result.loc[enum] = result
-        else:
-            continue
+    os.makedirs(os.path.dirname(out_external), exist_ok=True)
+    df_result = pd.DataFrame(columns=['target', 'model_id', 'TP', 'FP', 'P', 'N', 'precision', 'recall', 'FPR',
+                                      'F1', 'F2', 'F05', 'BA', 'EF', 'uniq_features', 'max_dist', 'features'])
+    for pp_model in os.listdir(pp_models):
+        for enum, in_pma in enumerate(os.listdir(os.path.join(pp_models, pp_model))):
+            if os.path.isfile(os.path.join(pp_models, pp_model, in_pma)) and (in_pma.endswith('.pma') or in_pma.endswith('.xyz')):
+                model_id = os.path.splitext(in_pma)[0]
+                results = get_external_stat(path_mols=path_mols,
+                                            path_ts=os.path.join(path_ts, f'{model_id.split("_")[0]}.smi'),
+                                            path_pma=os.path.join(pp_models, pp_model, in_pma),
+                                            pp_screen=os.path.join(path_screen, pp_model, f'{model_id}.txt'),
+                                            model_id=model_id)
+                if results:
+                    df_result.loc[enum] = results
+                else:
+                    continue
 
     df_result = df_result.sort_values(by=['recall', 'F05', 'F2'], ascending=False)
     df_result = round(df_result, 3)
@@ -129,17 +112,34 @@ def calc_stat(path_mols, path_ts, path_pma, path_screen, out_external):
     sys.stderr.write(f'{os.path.basename(out_external)}: ({round(time.time() - start_time, 3)}s)\n\n')
 
 
+def create_parser():
+    parser = argparse.ArgumentParser(description='External statistics calculation. '
+                                                 'If the metric cannot be calculated (dividing by zero), '
+                                                 'NaN will be printed',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-i', '--molecules', metavar='molecules.smi', required=True,
+                        help='The script takes as input a tab-separated SMILES file containing `SMILES`, '
+                             '`compound id`, `activity` columns. '
+                             'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactive ones.')
+    parser.add_argument('-t', '--trainset', metavar='path/to/trainset', required=True,
+                        help='A path to the folder where will be saved a training set.'
+                             'If omitted, the path will be generated automatically relative to project directory.')
+    parser.add_argument('-m', '--models', metavar='path/to/models', required=True,
+                        help='A path to a folder where will be saved the created pharmacophore models.'
+                             'If omitted, the path will be generated automatically relative to project directory.')
+    parser.add_argument('-s', '--screen', metavar='path/to/screen', required=True,
+                        help='path to the folder with the virtual screening results')
+    parser.add_argument('-o', '--output', metavar='external_statistics.txt', default=None,
+                        help='An output text file where will be saved validation statistics.'
+                             'If omitted, the path will be generated automatically relative to project directory.')
+    return parser
+
+
 if __name__ == '__main__':
     parser = create_parser()
-    args = vars(parser.parse_args())
-    for o, v in args.items():
-        if o == "path_molecules": path_mols = os.path.abspath(v)
-        if o == "path_trainset": path_ts = os.path.abspath(v)
-        if o == "path_to_pma": path_to_pma = os.path.abspath(v)
-        if o == "path_screen": path_screen = os.path.abspath(v)
-        if o == "out_external": out_external = os.path.abspath(v)
-
-    if out_external is None:
-        out_external = os.path.join(os.path.dirname(path_mols), 'result.txt')
-
-    calc_stat(path_mols, path_ts, path_to_pma, path_screen, out_external)
+    args = parser.parse_args()
+    calc_stat(path_mols=os.path.abspath(args.molecules),
+              path_ts=os.path.abspath(args.trainset),
+              path_pma=os.path.abspath(args.models),
+              path_screen=os.path.abspath(args.screen),
+              out_external=os.path.abspath(args.output) if args.output else os.path.join(os.path.dirname(args.molecules), 'result.txt'))
