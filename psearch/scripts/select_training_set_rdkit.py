@@ -36,7 +36,7 @@ def create_parser():
     parser.add_argument('-s', '--cluster_stat', default=None,
                         help='if designate path to file than save cluster statistics')
     parser.add_argument('-t', '--threshold_clust', default=0.4,
-                        help='threshold for сlustering data by Butina algorithm')
+                        help='threshold for clustering data by Butina algorithm')
     parser.add_argument('-clz', '--clust_size', default=5,
                         help='minimum cluster size from extract centroids for training set')
     parser.add_argument('-m', '--max_act_ts', default=5,
@@ -80,8 +80,6 @@ def save_cluster_stat(cs_index, len_act, clust_stat):
         for el in cluster:
             if el in range(0, len_act+1):
                 i_act += 1
-        #print('cluster №%i, cluster length %i, share of active %.2f' % (i, len(cluster), i_act/len(cluster)))
-        #print(cluster, '\n')
         clust_stat.write('cluster {}, cluster length {}, share of active {} \n'.format(i, len(cluster), i_act/len(cluster)))
 
 

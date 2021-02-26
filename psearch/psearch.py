@@ -38,7 +38,7 @@ def create_parser():
     parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', default=0,
                         help='tolerance used for calculation of a stereoconfiguration sign. Default: 0.')
     parser.add_argument('-thr', '--threshold_clust', metavar='NUMERIC', default=0.4,
-                        help='threshold for сlustering data by Butina algorithm. Default: 0.4')
+                        help='threshold for clustering data by Butina algorithm. Default: 0.4')
     parser.add_argument('--fdef', metavar='smarts.fdef', default=None,
                         help='fdef-file with pharmacophore feature definition if custom features were used.')
     parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
