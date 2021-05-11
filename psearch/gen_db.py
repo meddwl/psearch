@@ -12,6 +12,7 @@ import time
 import gzip
 import pickle
 import argparse
+import pandas as pd
 from pmapper import utils
 from itertools import combinations
 from rdkit import Chem
@@ -157,7 +158,8 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
                         string += "$$$$\n"
                         writer.write(string.encode("ascii") if output_file_type == 'sdf.gz' else string)
             if verbose and i % 10 == 0:
-                sys.stderr.write('\r%i molecules passed/conformers (%is)' % (i, time.time() - start_time))
+                current_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+                sys.stderr.write('\r{} molecules passed/conformers {}'.format(i, current_time))
                 sys.stderr.flush()
 
     finally:
@@ -165,6 +167,23 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
 
     if output_file_type is not 'shelve':
         writer.close()
+    # create new smi file if the input file has wrong molecule structure(-s)
+    else:
+        if len(open(in_fname).readlines()) > len(db.get_mol_names()):
+            df_in = pd.read_csv(in_fname, sep='\t')
+            cols = df_in.columns.tolist()
+            df_in = df_in[df_in[cols[1]].isin(db.get_mol_names())]
+            file_name = os.path.basename(in_fname)
+            pp_dirname = os.path.dirname(in_fname)
+            file_name_new = f'#{file_name}.1#'
+            for ll in os.listdir(pp_dirname):
+                if os.path.isfile(os.path.join(pp_dirname, ll)) and os.path.splitext(file_name)[0] in ll:
+                    num = int(ll.split('.')[-1].split('#')[0]) + 1
+                    file_name_new = '.'.join(ll.split('.')[:-1]) + f'.{num}#'
+                    break
+            os.rename(os.path.join(pp_dirname, file_name), os.path.join(pp_dirname, file_name_new))
+            pp_out = os.path.join(os.path.dirname(in_fname), file_name)
+            df_in.to_csv(pp_out, sep='\t', index=None)
 
     if verbose:
         sys.stderr.write("\n")
