@@ -1,0 +1,11 @@
+NC1CCCC(Nc2nc(Cl)cc(-c3c[nH]c4ncccc34)n2)C1	CHEMBL1998432	1
+CN1c2ccc(-c3cnc(N)c(F)c3N3CCC4(CC3)CNC(=O)O4)cc2CS1(=O)=O	CHEMBL3797656	1
+CN1C(=O)NC(=O)C12CCN(c1c(Cl)cncc1-c1ccc(-c3cnn(C)c3)cc1)CC2	CHEMBL3798611	1
+Cn1cc(-c2ccc(-c3cncc4ccc(-c5nccn5C)cc34)cc2)cn1	CHEMBL3827678	1
+Cn1cc(-c2ccc(-c3cnc(N)c4ccc(C(=O)N5CCC5)nc34)cc2)cn1	CHEMBL3828084	1
+O=C(Nc1cc(-c2c[nH]c3ncccc23)cc(Cl)n1)c1c(F)cccc1F	CHEMBL1991410	0
+Cn1cc(Nc2ncc(Br)c(Nc3ccccc3C(N)=O)n2)cn1	CHEMBL1994669	0
+CNC(=O)c1ccc2n[nH]c(Cc3ccc(-c4cnn(C)c4)cc3)c2c1	CHEMBL3775535	0
+Cn1cc(-c2ccc(-c3cncc4ccc(-c5ncco5)nc34)cc2)cn1	CHEMBL3827150	0
+Cn1cc(-c2ccc(-c3cnc(N)c4ccc(-c5nccn5C)nc34)cc2)cn1	CHEMBL3828129	0
+CCn1c(-c2nonc2N)nc2c(C#CC(C)(C)O)ncc(OC[C@H]3CCCNC3)c21	CHEMBL494089	0
