@@ -57,7 +57,7 @@ def entry_point():
     parser.add_argument('-vs', '--path_vs', metavar='path/to/vs/res', required=True,
                         help='path to the virtual screening result')
     parser.add_argument('-stat', '--models_stat', metavar='pharmacophores_stat.csv', required=True,
-                        help='.csv file with the precision of pharmacophore models')
+                        help='file with the calculated precision of pharmacophore models')
     parser.add_argument('-s', '--scoring_scheme', default='mean',
                         help='two schemes (Max and Mean) of probability calculation for consensus prediction '
                              'based on individual pharmacophore models were proposed')
