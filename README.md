@@ -10,9 +10,9 @@ pip install -U git+https://github.com/meddwl/psearch.git
 
 ## Dependency
 
-`pmapper >= 0.4.0`
-Link to pmapper repository
-https://github.com/DrrDom/pmapper
+`rdkit >= 2017.09`  
+`networkx >= 2`  
+[pmapper >= 0.4.0!](https://github.com/DrrDom/pmapper)  
 
 ## Example
 The demonstration of the tool is carried out on the example of the target ChEMBL5719. A shortened sample of 233 structures is proposed.
@@ -102,7 +102,7 @@ https://doi.org/10.3390/molecules23123094
 
 Probabilistic Approach for Virtual Screening Based on Multiple Pharmacophores
 Timur Madzhidov, Assima Rakhimbekova, Alina Kutlushuna, Pavel Polishchuk
-*Molecules* **2020**, 25(2), 385
+*Molecules* **2020**, 25(2), 385  
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7024325/
 
 ## License
