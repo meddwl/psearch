@@ -21,7 +21,7 @@ Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophor
 def create_parser():
     parser = argparse.ArgumentParser(description='Screen DB with compounds against pharmacophore queries.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--dbname', metavar='FILENAME', type=str, required=True,
+    parser.add_argument('-d', '--dbname', metavar='FILENAME.dat', type=str, required=True,
                         help='input database with generated conformers and pharmacophores.')
     parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', required=True, type=str, nargs='+',
                         help='pharmacophore model(s) or directory path(s). If a directory is specified all '
@@ -54,10 +54,13 @@ def load_confs(mol_name, db):
     ph_dict = db.get_pharm(mol_name)
     res = []
     for stereo_id in fp_dict:
-        for conf_id, (fp, coord) in enumerate(zip(fp_dict[stereo_id], ph_dict[stereo_id])):
-            p = Pharmacophore(bin_step=bin_step)
-            p.load_from_feature_coords(coord)
-            res.append(Conformer(stereo_id, conf_id, fp, p))
+        try:
+            for conf_id, (fp, coord) in enumerate(zip(fp_dict[stereo_id], ph_dict[stereo_id])):
+                p = Pharmacophore(bin_step=bin_step)
+                p.load_from_feature_coords(coord)
+                res.append(Conformer(stereo_id, conf_id, fp, p))
+        except:
+            print(mol_name)
     return res
 
 

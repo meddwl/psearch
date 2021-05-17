@@ -133,6 +133,7 @@ def entry_point():
     parser = create_parser()
     args = parser.parse_args()
     project_dir = args.project_dir if args.project_dir else os.path.dirname(os.path.abspath(args.molecules))
+    os.makedirs(project_dir, exist_ok=True)
     main(in_mols=os.path.abspath(args.molecules),
          in_db=os.path.abspath(args.database),
          path_ts=args.trainset if args.trainset else os.path.join(project_dir, 'trainset'),
