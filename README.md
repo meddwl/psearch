@@ -27,7 +27,7 @@ There are two steps of pharmacophore model generation.
 ```python
 gen_db -i $PROJECT_DIR/chembl5719_example.smi -o $PROJECT_DIR/data/chembl5719_example.dat -c 4
 ```
-`-i` - path to the input SMILES file
+`-i` - path to the input SMILES file  
 `-o` - path to database (should have extension .dat)  
 `-c` - number of CPUs to use  
 There are other arguments which one can tune. Invoke script with `-h` key to get full information.
@@ -42,10 +42,10 @@ The script generates stereoisomers and conformers, creates the database of compo
 ```python
 psearch -p $PROJECT_DIR/pharm/ -i $PROJECT_DIR/chembl5719_example.smi -d $PROJECT_DIR/data/chembl5719_example.dat -c 4
 ```
-`-p` - path to the models directory where training set files, pharmacophore models, screening results and external model statistics will be stored
-`-i` - path to the input SMILES file
+`-p` - path to the models directory where training set files, pharmacophore models, screening results and external model statistics will be stored  
+`-i` - path to the input SMILES file  
 `-d` - path to the database generated on the previous step  
-`-c`- number of CPUs to use
+`-c`- number of CPUs to use  
 
 Other arguments are available at the command line.
 
@@ -71,9 +71,9 @@ external_statistics.txt: (0.535s)```
 screen_db -d $PROJECT_DIR/data/chembl5719_example.dat -q $PROJECT_DIR/pharm/models/ -o $PROJECT_DIR/vs -c 4
 ```
 `-d` - input generated database  
-`-q` - pharmacophore model or models or a directory with models. If a directory would be specified all pma- and xyz-files will be recognized as pharmacophores and will be used for screening.  
-`-o` - path to an output directory if multiple models were supplied for screening or a path to a text/sdf file    
-`-c`- number of CPUs to use
+`-q` - pharmacophore model or models or a directory with models. If a directory would be specified all pma- and xyz-files will be recognized as pharmacophores and will be used for screening  
+`-o` - path to an output directory if multiple models were supplied for screening or a path to a text/sdf file  
+`-c`- number of CPUs to use  
 
 If multiple models are used for screening and sdf output is desired a user should add `-z` argument which will force output format to be sdf.
 
