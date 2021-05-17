@@ -12,7 +12,7 @@ pip install -U git+https://github.com/meddwl/psearch.git
 
 `rdkit >= 2017.09`  
 `networkx >= 2`  
-[pmapper >= 0.4.0!](https://github.com/DrrDom/pmapper)  
+[pmapper >= 0.4.0](https://github.com/DrrDom/pmapper)  
 
 ## Example
 The demonstration of the tool is carried out on the example of the target ChEMBL5719. A shortened sample of 233 structures is proposed.
@@ -77,15 +77,15 @@ screen_db -d $PROJECT_DIR/data/chembl5719_example.dat -q $PROJECT_DIR/pharm/mode
 
 If multiple models are used for screening and sdf output is desired a user should add `-z` argument which will force output format to be sdf.
 
-3. Calculating probability of the activity of molecules towards the considering protein by precision of the molecules
-The scheme of how the probability is calculated is described in the article below
+3. Calculating probability of the activity of molecules towards the considering protein by precision of the molecules.  
+The scheme of how the probability is calculated is described in the [article](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7024325/) below
 
 ```python
 prediction -vs $PROJECT_DIR/vs -stat $PROJECT_DIR/pharm/results/external_statistics.txt -o $PROJECT_DIR/prediction-ranked_mols.txt
 ```
-`-vs` - path to the virtual screening result
-`-stat` - file with the calculated precision of pharmacophore models
-`-o` - output text file where will be saved the prediction
+`-vs` - path to the virtual screening result  
+`-stat` - file with the calculated precision of pharmacophore models  
+`-o` - output text file where will be saved the prediction  
 
 ## Documentation
 
