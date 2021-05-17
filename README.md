@@ -11,6 +11,8 @@ pip install -U git+https://github.com/meddwl/psearch.git
 ## Dependency
 
 `pmapper >= 0.4.0`
+Link to pmapper repository
+https://github.com/DrrDom/pmapper
 
 ## Example
 The demonstration of the tool is carried out on the example of the target ChEMBL5719. A shortened sample of 233 structures is proposed.
