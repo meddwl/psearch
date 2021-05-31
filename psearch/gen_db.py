@@ -169,11 +169,13 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
         writer.close()
     # create new smi file if the input file has bad molecule structure(-s)
     else:
-        if len(open(in_fname).readlines()) > len(db.get_mol_names()):
+        if len(open(in_fname).readlines()) - 1 > len(db.get_mol_names()):
             df_in = pd.read_csv(in_fname, sep='\t')
             cols = df_in.columns.tolist()
             df_in = df_in[df_in[cols[1]].isin(db.get_mol_names())]
-            df_in = df_in.astype({'activity': int})
+            cols = df_in.columns.tolist()
+            if len(cols) == 3:
+                df_in = df_in.astype({cols[3]: int})
             file_name = os.path.basename(in_fname)
             pp_dirname = os.path.dirname(in_fname)
             file_name_new = f'#{file_name}.1#'

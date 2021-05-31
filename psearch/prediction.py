@@ -12,13 +12,12 @@ import argparse
 
 
 def calc_probability(df_vs, df_precision, target_id, scoring_scheme):
-    df = df_vs.multiply(df_precision['precision'], axis=0)
+    df = df_vs.mul(df_precision['precision'].astype(float), axis=0)
     if scoring_scheme == 'mean':
         df.loc[target_id] = df.mean(axis=0, skipna=True)
     elif scoring_scheme == 'max':
         df.loc[target_id] = df.max(axis=0, skipna=True)
-    df = df.loc[target_id]
-    return round(df, 3)
+    return round(df.loc[target_id], 3)
 
 
 def input_processing(pp_vs, target_id, models_list):
@@ -38,7 +37,7 @@ def main(pp_vs, pp_models_stat, scoring_scheme, pp_output):
     df_models_stat = pd.read_csv(pp_models_stat, sep='\t', index_col='model_id')
     res = pd.DataFrame()
     for target_id in os.listdir(pp_vs):
-        df_models = df_models_stat[df_models_stat['target'] == target_id]
+        df_models = df_models_stat[df_models_stat['target_id'] == target_id]
         df_vs = input_processing(pp_vs, target_id, df_models.index.tolist())
         if df_vs.empty:
             continue

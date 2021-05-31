@@ -81,7 +81,7 @@ screen_db -d $PROJECT_DIR/data/chembl5719_example.dat -q $PROJECT_DIR/pharm/mode
 
 If multiple models are used for screening and sdf output is desired a user should add `-z` argument which will force output format to be sdf.
 
-3. Calculating probability of the activity of molecules towards the considering protein by precision of the molecules.  
+3. Calculating probability of the activity of molecules towards the considering protein by precision of the models.  
 The scheme of how the probability is calculated is described in the [article](https://doi.org/10.3390/molecules25020385) below
 
 ```python
@@ -90,6 +90,25 @@ prediction -vs $PROJECT_DIR/vs -stat $PROJECT_DIR/pharm/results/external_statist
 `-vs` - path to the virtual screening result  
 `-stat` - file with the calculated precision of pharmacophore models  
 `-o` - output text file where will be saved the prediction  
+
+### Multiprofiling the molecules
+
+1. Database creation using the same procedure as described above. 
+
+```python
+gen_db -i $PROJECT_DIR/chembl5719_example.smi -o $PROJECT_DIR/data/chembl5719_example.dat -c 4
+```
+
+2. Virtual screening.
+  
+```python
+for D in pharmacophores/chembl_models/*; do screen_db -d example/ready/multiprofiling/db/act_mols.dat -q $D -o example/ready/multiprofiling/vs/ -c 4; done
+```
+
+3. Calculating probability of the activity of molecules towards the protein and rank molecules.
+```python
+prediction -vs $PROJECT_DIR/multiprofiling/vs/ -stat pharmacophores/pharmacophores_stat.csv -o $PROJECT_DIR/multiprofiling/multiprofiling_res.txt
+```
 
 ## Documentation
 

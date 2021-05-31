@@ -1,0 +1,109 @@
+target_id	pref_name	organism	l1	l2	l3
+CHEMBL1075104	Leucine-rich repeat serine/threonine-protein kinase 2	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL1163125	Bromodomain-containing protein 4	Homo sapiens	Epigenetic regulator	Reader	Bromodomain
+CHEMBL1811	Prostanoid EP1 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1821	Muscarinic acetylcholine receptor M4	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1833	Serotonin 2b (5-HT2b) receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1835	Thromboxane-A synthase	Homo sapiens	Enzyme	Cytochrome P450	Cytochrome P450 family 5
+CHEMBL1836	Prostanoid EP4 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1844	Macrophage colony stimulating factor  receptor	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL1862	Tyrosine-protein kinase ABL	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL1867	Alpha-2a adrenergic receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1868	Vascular endothelial growth factor receptor 1	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL1871	Androgen Receptor	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 3
+CHEMBL1898	Serotonin 1b (5-HT1b) receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1907598	Integrin alpha-V/beta-3	Homo sapiens	Membrane receptor		
+CHEMBL1916	Alpha-2c adrenergic receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1942	Alpha-2b adrenergic receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL1974	Tyrosine-protein kinase receptor FLT3	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL1978	Cytochrome P450 19A1	Homo sapiens	Enzyme	Cytochrome P450	Cytochrome P450 family 19
+CHEMBL1994	Mineralocorticoid receptor	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 3
+CHEMBL204	Thrombin	Homo sapiens	Enzyme	Protease	Serine protease
+CHEMBL205	Carbonic anhydrase II	Homo sapiens	Enzyme	Lyase	
+CHEMBL2056	Dopamine D1 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL206	Estrogen receptor alpha	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 3
+CHEMBL2069	Thromboxane A2 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL208	Progesterone receptor	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 3
+CHEMBL209	Trypsin I	Homo sapiens	Enzyme	Protease	Serine protease
+CHEMBL2093869	Integrin alpha-IIb/beta-3	Homo sapiens	Membrane receptor		
+CHEMBL2094126	Cyclin-dependent kinase 2/cyclin E	Homo sapiens	Other cytosolic protein		
+CHEMBL2094127	Cyclin-dependent kinase 1/cyclin B	Homo sapiens	Other cytosolic protein		
+CHEMBL2094128	Cyclin-dependent kinase 2/cyclin A	Homo sapiens	Other cytosolic protein		
+CHEMBL210	Beta-2 adrenergic receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL211	Muscarinic acetylcholine receptor M2	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL213	Beta-1 adrenergic receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL2147	Serine/threonine-protein kinase PIM1	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL216	Muscarinic acetylcholine receptor M1	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL2169736	Tyrosyl-DNA phosphodiesterase 2	Homo sapiens	Enzyme		
+CHEMBL217	Dopamine D2 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL2176771	Complement factor D	Homo sapiens	Enzyme	Protease	Serine protease
+CHEMBL218	Cannabinoid CB1 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL2185	Serine/threonine-protein kinase Aurora-B	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL2243	Anandamide amidohydrolase	Homo sapiens	Enzyme		
+CHEMBL226	Adenosine A1 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL2265	Acyl coenzyme A:cholesterol acyltransferase	Homo sapiens	Enzyme		
+CHEMBL231	Histamine H1 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL232	Alpha-1b adrenergic receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL2326	Carbonic anhydrase VII	Homo sapiens	Enzyme	Lyase	
+CHEMBL233	Mu opioid receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL2331053	6-phosphofructo-2-kinase/fructose-2,6-bisphosphatase 3	Homo sapiens	Unclassified protein		
+CHEMBL235	Peroxisome proliferator-activated receptor gamma	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 1
+CHEMBL236	Delta opioid receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL237	Kappa opioid receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL238	Dopamine transporter	Homo sapiens	Transporter	Electrochemical transporter	SLC superfamily of solute carriers
+CHEMBL2392	DNA polymerase beta	Homo sapiens	Enzyme		
+CHEMBL240	HERG	Homo sapiens	Ion channel	Voltage-gated ion channel	Potassium channels
+CHEMBL2413	C-C chemokine receptor type 1	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL242	Estrogen receptor beta	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 3
+CHEMBL2434	Interleukin-8 receptor B	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL244	Coagulation factor X	Homo sapiens	Enzyme	Protease	Serine protease
+CHEMBL2487	Beta amyloid A4 protein	Homo sapiens	Membrane receptor		
+CHEMBL251	Adenosine A2a receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL252	Endothelin receptor ET-A	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL253	Cannabinoid CB2 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL255	Adenosine A2b receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL256	Adenosine A3 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL261	Carbonic anhydrase I	Homo sapiens	Enzyme	Lyase	
+CHEMBL262	Glycogen synthase kinase-3 beta	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL274	C-C chemokine receptor type 5	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL279	Vascular endothelial growth factor receptor 2	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL2808	LXR-alpha	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 1
+CHEMBL283	Matrix metalloproteinase 3	Homo sapiens	Enzyme	Protease	Metallo protease
+CHEMBL284	Dipeptidyl peptidase IV	Homo sapiens	Enzyme	Protease	Serine protease
+CHEMBL2842	Serine/threonine-protein kinase mTOR	Homo sapiens	Enzyme		
+CHEMBL2954	Cathepsin S	Homo sapiens	Enzyme	Protease	Cysteine protease
+CHEMBL2971	Tyrosine-protein kinase JAK2	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL2973	Rho-associated protein kinase 2	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL299	Protein kinase C alpha	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL3105	Poly [ADP-ribose] polymerase-1	Homo sapiens	Enzyme		
+CHEMBL321	Matrix metalloproteinase 9	Homo sapiens	Enzyme	Protease	Metallo protease
+CHEMBL3227	Metabotropic glutamate receptor 5	Homo sapiens	Membrane receptor	Family C G protein-coupled receptor	Small molecule receptor (family C GPCR)
+CHEMBL3242	Carbonic anhydrase XII	Homo sapiens	Enzyme	Lyase	
+CHEMBL332	Matrix metalloproteinase-1	Homo sapiens	Enzyme	Protease	Metallo protease
+CHEMBL333	Matrix metalloproteinase-2	Homo sapiens	Enzyme	Protease	Metallo protease
+CHEMBL3473	C-C chemokine receptor type 3	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL3474	Phospholipase A2 group IIA	Homo sapiens	Enzyme		
+CHEMBL3510	Carbonic anhydrase XIV	Homo sapiens	Enzyme	Lyase	
+CHEMBL3594	Carbonic anhydrase IX	Homo sapiens	Enzyme	Lyase	
+CHEMBL3706	ADAM17	Homo sapiens	Enzyme	Protease	Metallo protease
+CHEMBL3717	Hepatocyte growth factor receptor	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL3759	Histamine H4 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL3880	Heat shock protein HSP 90-alpha	Homo sapiens	Other cytosolic protein		
+CHEMBL3975	Fructose-1,6-bisphosphatase	Homo sapiens	Enzyme		
+CHEMBL3979	Peroxisome proliferator-activated receptor delta	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 1
+CHEMBL4005	PI3-kinase p110-alpha subunit	Homo sapiens	Enzyme		
+CHEMBL4015	C-C chemokine receptor type 2	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL4093	LXR-beta	Homo sapiens	Transcription factor	Nuclear receptor	Nuclear hormone receptor subfamily 1
+CHEMBL4203	Dual specificity protein kinase CLK4	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL4303	Heat shock protein HSP 90-beta	Homo sapiens	Other cytosolic protein		
+CHEMBL4333	Sphingosine 1-phosphate receptor Edg-1	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+CHEMBL4409	Phosphodiesterase 10A	Homo sapiens	Enzyme	Phosphodiesterase	Phosphodiesterase 10
+CHEMBL4429	Neurokinin 3 receptor	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL4523	Serine/threonine-protein kinase PIM2	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL4578	Maternal embryonic leucine zipper kinase	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL4588	Matrix metalloproteinase 8	Homo sapiens	Enzyme	Protease	Metallo protease
+CHEMBL4722	Serine/threonine-protein kinase Aurora-A	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL4792	Orexin receptor 2	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL5113	Orexin receptor 1	Homo sapiens	Membrane receptor	Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+CHEMBL5443	Cell division cycle 7-related protein kinase	Homo sapiens	Enzyme	Kinase	Protein Kinase
+CHEMBL5719	Cell division protein kinase 8	Homo sapiens	Enzyme	Kinase	Protein Kinase
