@@ -232,7 +232,7 @@ def entry_point():
     if (args.bin_step < 0) or (args.nstereo <= 0) or (args.nconf <= 0):
         sys.exit("--bin_step, --nstereo, --nconf can not be less 0.\n"
                  "--stereo and/or --nconf can not be set to 0, otherwise, the database will not be created correctly.")
-    os.makedirs(os.path.dirname(args.out_fname), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(args.out_fname)), exist_ok=True)
 
     create_db(in_fname=args.in_fname,
               out_fname=args.out_fname,
