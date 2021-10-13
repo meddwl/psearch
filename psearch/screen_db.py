@@ -156,7 +156,7 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
     if output.endswith('.sdf'):  # forcibly set output format
         output_sdf = True
 
-    db = DB(db_fname)
+    db = DB(db_fname, flag='r')
     bin_step = db.get_bin_step()
     models = read_models(queries, output, bin_step, min_features)   # return list of Model namedtuples
     for model in models:

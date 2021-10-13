@@ -118,7 +118,7 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
     designating = ['1', '0']  # molecular activity
     clust_strategy = 1 if cluster_id == 'centroids' else 2
     positives = len([line for line in open(trainset).readlines() if line.strip().split()[2] == designating[0]])
-    db = DB(in_db)
+    db = DB(in_db, flag='r')
     df_sub = gen_models(_gen_quadruplets(db, trainset, current_nfeatures, tolerance, bin_step))
     df = calc_internal_stat(df_sub[['activity', 'hash', 'count']].drop_duplicates(subset=['activity', 'hash']),
                             positives, clust_strategy, designating)

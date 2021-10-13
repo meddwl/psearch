@@ -11,8 +11,8 @@ import shelve
 
 
 class DB:
-    def __init__(self, fname):
-        self.__db = shelve.open(os.path.splitext(fname)[0])
+    def __init__(self, fname, flag='c'):
+        self.__db = shelve.open(os.path.splitext(fname)[0], flag=flag)
 
     def __enter__(self):
         return self

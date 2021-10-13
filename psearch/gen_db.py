@@ -127,7 +127,7 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
         writer = open(out_fname, 'wb')
         output_file_type = 'pkl'
     elif out_fname.lower().endswith('.dat'):
-        db = DB(out_fname)
+        db = DB(out_fname, flag='n')
         db.write_bin_step(bin_step)
         output_file_type = 'shelve'
     else:
@@ -165,7 +165,7 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
     finally:
         p.close()
 
-    if output_file_type is not 'shelve':
+    if output_file_type != 'shelve':
         writer.close()
     # create new smi file if the input file has bad molecule structure(-s)
     else:
@@ -204,7 +204,8 @@ def entry_point():
                         help='input file of 2D SDF or SMILES format (tab-separated).')
     parser.add_argument('-o', '--out_fname', metavar='FILENAME', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
-                             '.dat and .dir.')
+                             '.dat and .dir. gen_db always creates a new database and '
+                             'overwrites the old one with the same name.')
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=int, default=1,
                         help='binning step for pharmacophores creation.')
     parser.add_argument('-s', '--nstereo', metavar='INTEGER', type=int, default=5,
