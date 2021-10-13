@@ -28,7 +28,7 @@ def create_parser():
     parser.add_argument('-ts', '--trainset', metavar='path/training/set', type=str, default=None,
                         help='A path to the folder where will be saved a training set.'
                              'If omitted, the path will be generated automatically relative to project directory.')
-    parser.add_argument('-m', '--models', metavar='path/to/models/', type=str, default=None,
+    parser.add_argument('-q', '--query', metavar='path/to/models/', type=str, default=None,
                         help='A path to a folder where will be saved the created pharmacophore models.'
                              'If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-s', '--screening', metavar='path/to/screen/output', type=str, default=None,
@@ -137,7 +137,7 @@ def entry_point():
     main(in_mols=os.path.abspath(args.molecules),
          in_db=os.path.abspath(args.database),
          path_ts=args.trainset if args.trainset else os.path.join(project_dir, 'trainset'),
-         path_pma=args.models if args.models else os.path.join(project_dir, 'models'),
+         path_pma=args.query if args.query else os.path.join(project_dir, 'models'),
          path_screen=args.screening if args.screening else os.path.join(project_dir, 'screen'),
          path_external_stat=args.external_statistics if args.external_statistics else os.path.join(project_dir, 'results', 'external_statistics.txt'),
          path_clus_stat=os.path.join(project_dir, 'cluster_stat_t{}.txt'.format(args.threshold)),
