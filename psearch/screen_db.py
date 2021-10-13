@@ -13,6 +13,7 @@ from functools import partial
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from psearch.database import DB
+from setup import this_directory
 
 Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophore'])
@@ -23,9 +24,12 @@ def create_parser():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--dbname', metavar='FILENAME.dat', type=str, required=True,
                         help='input database with generated conformers and pharmacophores.')
-    parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', required=True, type=str, nargs='+',
+    parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', type=str, nargs='+',
+                        default=os.path.join(this_directory, 'pharmacophores', 'pharms_chembl'),
                         help='pharmacophore model(s) or directory path(s). If a directory is specified all '
-                             'pma- and xyz-files will be used for screening as pharmacophore models.')
+                             'pma- and xyz-files will be used for screening as pharmacophore models.'
+                             'The ligand-based pharmacophore models, that created from the ChEMBL database '
+                             'using  the psearch tool, are used by default.')
     parser.add_argument('-o', '--output', metavar='FILENAME or DIRNAME', required=True, type=str,
                         help='a text (.txt) file which will store names of compounds which fit the model. In the case '
                              'multiple query models or directories were supplied as input'
@@ -185,6 +189,7 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 def entry_point():
     parser = create_parser()
     args = parser.parse_args()
+    print('models', args.query)
     screen_db(db_fname=args.dbname,
               queries=args.query,
               output=args.output,
