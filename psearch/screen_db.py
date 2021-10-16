@@ -13,8 +13,9 @@ from functools import partial
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from psearch.database import DB
-from setup import this_directory
 
+
+this_directory = os.path.split(os.path.abspath(os.path.dirname(__file__)))[0]
 Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophore'])
 
