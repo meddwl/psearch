@@ -202,7 +202,7 @@ def entry_point():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--in_fname', metavar='FILENAME', required=True, type=str,
                         help='input file of 2D SDF or SMILES format (tab-separated).')
-    parser.add_argument('-o', '--out_fname', metavar='FILENAME', required=True, type=str,
+    parser.add_argument('-d', '--dbname', metavar='FILENAME', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
                              '.dat and .dir. gen_db always creates a new database and '
                              'overwrites the old one with the same name.')
@@ -235,8 +235,13 @@ def entry_point():
                  "--stereo and/or --nconf can not be set to 0, otherwise, the database will not be created correctly.")
     os.makedirs(os.path.dirname(os.path.abspath(args.out_fname)), exist_ok=True)
 
+    fdb = args.dbname
+    pdir, fdb = os.path.dirname(fdb), os.path.basename(fdb)
+    if fdb in os.listdir(pdir):
+        sys.exit("A database with this name already exists")
+
     create_db(in_fname=args.in_fname,
-              out_fname=args.out_fname,
+              out_fname=fdb,
               nconf=args.nconf,
               nstereo=args.nstereo,
               energy=args.energy_cutoff,
