@@ -105,8 +105,8 @@ def save_models_xyz(db, df_sub, path_pma, bin_step, cluster_id, num_ids):
     for num, (_, hash, count, mol_name, isomer_id, conf_id, feature_ids) in enumerate(data):
         pharm = Pharmacophore(bin_step=bin_step, cached=True)
         pharm.load_from_feature_coords(db.get_pharm(mol_name)[isomer_id][conf_id])
-        pharm.save_to_xyz(os.path.join(path_pma, f'{cluster_id}_f{num_ids}_p{num}.xyz'),
-                          tuple(map(int, feature_ids.split(','))))
+        pharm.save_to_xyz(os.path.join(path_pma, f"{cluster_id}_f{num_ids}_p{num}.xyz"))
+                          #tuple(map(int, feature_ids.split(','))))
     return len(data)
 
 
@@ -134,7 +134,8 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
     df_sub = _keep_best_models(df, df_sub, save_statistics, current_nfeatures)
     if nfeatures is not None:
         if current_nfeatures >= nfeatures:
-            _ = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id, current_nfeatures)
+            _ = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id,
+                                current_nfeatures)
 
     while True:
         if current_nfeatures == upper:
@@ -149,7 +150,8 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
         df_sub = _keep_best_models(df, df_sub_2, save_statistics, current_nfeatures)
         if nfeatures is not None:
             if current_nfeatures >= nfeatures:
-                _ = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id, current_nfeatures)
+                _ = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]],
+                                    out_pma, bin_step, cluster_id, current_nfeatures)
 
     num_models = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id, current_nfeatures)
     sys.stderr.write(f'train set {cluster_id}: {num_models} models ({round(time.time()-time_start, 3)}s)\n')
