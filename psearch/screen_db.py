@@ -15,7 +15,7 @@ from rdkit.Chem import AllChem
 from psearch.database import DB
 
 
-path_query = os.path.join(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0], 'pharmacophores', 'pharms_chembl')
+path_query = os.path.join(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0], 'pharmacophores', 'chembl_models')
 Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophore'])
 
