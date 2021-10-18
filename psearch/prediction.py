@@ -9,7 +9,9 @@ __author__ = 'Alina Kutlushina'
 import os
 import pandas as pd
 import argparse
-
+from collections import defaultdict
+default_modelstat = os.path.join(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0],
+                                             'pharmacophores', 'pharmacophores_stat.csv')
 
 def calc_probability(df_vs, df_precision, target_id, scoring_scheme):
     df = df_vs.mul(df_precision['precision'].astype(float), axis=0)
@@ -20,14 +22,11 @@ def calc_probability(df_vs, df_precision, target_id, scoring_scheme):
     return round(df.loc[target_id], 3)
 
 
-def input_processing(pp_vs, target_id, models_list):
-    pp_vs_t = os.path.join(pp_vs, target_id)
+def input_processing(list_vs, models_list):
     df = pd.DataFrame(index=models_list)
-    if len(os.listdir(pp_vs_t)) == 0:
-        return df
-    for ff in os.listdir(pp_vs_t):
-        ph = os.path.splitext(ff)[0]
-        mols = [i.strip().split()[0] for i in open(os.path.join(pp_vs_t, ff)).readlines()]
+    for ff in list_vs:
+        ph = os.path.splitext(os.path.basename(ff))[0].split('.')[1]
+        mols = [i.strip().split()[0] for i in open(ff).readlines()]
         for mol_id in mols:
             df.at[ph, mol_id] = 1
     return df
@@ -35,12 +34,15 @@ def input_processing(pp_vs, target_id, models_list):
 
 def main(pp_vs, pp_models_stat, scoring_scheme, pp_output):
     df_models_stat = pd.read_csv(pp_models_stat, sep='\t', index_col='model_id')
+    vs_files = defaultdict(list)
+    for fname in os.listdir(pp_vs):
+        target_id = os.path.splitext(fname)[0].split('.')[0]
+        vs_files[target_id].append(os.path.join(pp_vs, fname))
+
     res = pd.DataFrame()
-    for target_id in os.listdir(pp_vs):
+    for target_id, fvs in vs_files.items():
         df_models = df_models_stat[df_models_stat['target_id'] == target_id]
-        df_vs = input_processing(pp_vs, target_id, df_models.index.tolist())
-        if df_vs.empty:
-            continue
+        df_vs = input_processing(fvs, df_models.index.tolist())
         df_res = calc_probability(df_vs, df_models, target_id, scoring_scheme)
         res = res.merge(df_res, left_index=True, right_index=True, how='outer')
     # res = res.transpose()
@@ -55,8 +57,10 @@ def entry_point():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-vs', '--path_vs', metavar='path/to/vs/res', required=True,
                         help='path to the virtual screening result')
-    parser.add_argument('-stat', '--models_stat', metavar='pharmacophores_stat.csv', required=True,
-                        help='file with the calculated precision of pharmacophore models')
+    parser.add_argument('-stat', '--models_stat', metavar='pharmacophores_stat.csv',
+                        default=default_modelstat,
+                        help='file with the calculated precision of pharmacophore models. '
+                             'By default, statistics are used for the chembl models, which are in pserch.')
     parser.add_argument('-s', '--scoring_scheme', default='mean',
                         help='two schemes (Max and Mean) of probability calculation for consensus prediction '
                              'based on individual pharmacophore models were proposed')
@@ -64,7 +68,8 @@ def entry_point():
                         help='output text file where will be saved the prediction')
 
     args = parser.parse_args()
-    main(args.path_vs, args.models_stat, args.scoring_scheme, args.output)
+    main(os.path.abspath(args.path_vs), os.path.abspath(args.models_stat),
+         args.scoring_scheme, os.path.abspath(args.output))
 
 
 if __name__ == '__main__':

@@ -90,21 +90,20 @@ def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
 def calc_stat(path_mols, path_ts, pp_models, path_screen, out_external):
     start_time = time.time()
     os.makedirs(os.path.dirname(out_external), exist_ok=True)
-    df_result = pd.DataFrame(columns=['target', 'model_id', 'TP', 'FP', 'P', 'N', 'precision', 'recall', 'FPR',
+    df_result = pd.DataFrame(columns=['target_id', 'model_id', 'TP', 'FP', 'P', 'N', 'precision', 'recall', 'FPR',
                                       'F1', 'F2', 'F05', 'BA', 'EF', 'uniq_features', 'max_dist', 'features'])
-    for pp_model in os.listdir(pp_models):
-        for enum, in_pma in enumerate(os.listdir(os.path.join(pp_models, pp_model))):
-            if os.path.isfile(os.path.join(pp_models, pp_model, in_pma)) and (in_pma.endswith('.pma') or in_pma.endswith('.xyz')):
-                model_id = os.path.splitext(in_pma)[0]
-                results = get_external_stat(path_mols=path_mols,
-                                            path_ts=os.path.join(path_ts, f'{model_id.split("_")[0]}.smi'),
-                                            path_pma=os.path.join(pp_models, pp_model, in_pma),
-                                            pp_screen=os.path.join(path_screen, pp_model, f'{model_id}.txt'),
-                                            model_id=model_id)
-                if results:
-                    df_result.loc[enum] = results
-                else:
-                    continue
+    for enum, fmodel in enumerate(sorted(os.listdir(pp_models))):
+        if os.path.isfile(os.path.join(pp_models, fmodel)) and (fmodel.endswith('.pma') or fmodel.endswith('.xyz')):
+            target_id, model_id = os.path.splitext(fmodel)[0].split('.')
+            results = get_external_stat(path_mols=path_mols,
+                                        path_ts=os.path.join(path_ts, f'{model_id.split("_")[0]}.smi'),
+                                        path_pma=os.path.join(pp_models, fmodel),
+                                        pp_screen=os.path.join(path_screen, f'{target_id}.{model_id}.txt'),
+                                        model_id=model_id)
+            if results:
+                df_result.loc[enum] = results
+            else:
+                continue
 
     df_result = df_result.sort_values(by=['recall', 'F05', 'F2'], ascending=False)
     df_result = round(df_result, 3)
