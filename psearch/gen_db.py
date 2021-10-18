@@ -114,9 +114,6 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
 
     start_time = time.time()
 
-    if os.path.isfile(out_fname):
-        os.remove(out_fname)
-
     if out_fname.lower().endswith('.sdf.gz'):
         writer = gzip.open(out_fname, 'a')
         output_file_type = 'sdf.gz'
@@ -204,8 +201,7 @@ def entry_point():
                         help='input file of 2D SDF or SMILES format (tab-separated).')
     parser.add_argument('-d', '--dbname', metavar='FILENAME', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
-                             '.dat and .dir. gen_db always creates a new database and '
-                             'overwrites the old one with the same name.')
+                             '.dat and .dir. If there is a database with the same name, then the tool will stop.')
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=int, default=1,
                         help='binning step for pharmacophores creation.')
     parser.add_argument('-s', '--nstereo', metavar='INTEGER', type=int, default=5,
@@ -233,11 +229,11 @@ def entry_point():
     if (args.bin_step < 0) or (args.nstereo <= 0) or (args.nconf <= 0):
         sys.exit("--bin_step, --nstereo, --nconf can not be less 0.\n"
                  "--stereo and/or --nconf can not be set to 0, otherwise, the database will not be created correctly.")
-    os.makedirs(os.path.dirname(os.path.abspath(args.out_fname)), exist_ok=True)
 
-    fdb = args.dbname
-    pdir, fdb = os.path.dirname(fdb), os.path.basename(fdb)
-    if fdb in os.listdir(pdir):
+    fdb = os.path.abspath(args.dbname)
+    os.makedirs(os.path.dirname(os.path.abspath(fdb)), exist_ok=True)
+    pdir, fname = os.path.dirname(fdb), os.path.basename(fdb)
+    if fname in os.listdir(pdir):
         sys.exit("A database with this name already exists")
 
     create_db(in_fname=args.in_fname,

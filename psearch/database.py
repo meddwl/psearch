@@ -12,7 +12,7 @@ import shelve
 
 class DB:
     def __init__(self, fname, flag='c'):
-        self.__db = shelve.open(os.path.splitext(fname)[0], flag=flag)
+        self.__db = shelve.open(os.path.splitext(fname)[0], flag=flag, protocol=4)
 
     def __enter__(self):
         return self
