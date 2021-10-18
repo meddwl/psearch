@@ -15,7 +15,7 @@ from rdkit.Chem import AllChem
 from psearch.database import DB
 
 
-this_directory = os.path.split(os.path.abspath(os.path.dirname(__file__)))[0]
+path_query = os.path.join(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0], 'pharmacophores', 'pharms_chembl')
 Model = namedtuple('Model', ['name', 'fp', 'pharmacophore', 'output_filename'])
 Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophore'])
 
@@ -26,7 +26,7 @@ def create_parser():
     parser.add_argument('-d', '--dbname', metavar='FILENAME.dat', type=str, required=True,
                         help='input database with generated conformers and pharmacophores.')
     parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', type=str, nargs='+',
-                        default=os.path.join(this_directory, 'pharmacophores', 'pharms_chembl'),
+                        default=[os.path.join(path_query, q) for q in os.listdir(path_query)],
                         help='pharmacophore model(s) or directory path(s). If a directory is specified all '
                              'pma- and xyz-files will be used for screening as pharmacophore models.'
                              'The ligand-based pharmacophore models, that created from the ChEMBL database '
@@ -190,7 +190,6 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 def entry_point():
     parser = create_parser()
     args = parser.parse_args()
-    print('models', args.query)
     screen_db(db_fname=args.dbname,
               queries=args.query,
               output=args.output,
