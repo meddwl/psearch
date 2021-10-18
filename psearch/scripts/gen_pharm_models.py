@@ -100,19 +100,19 @@ def calc_internal_stat(df, positives, clust_strategy, designating):
     return df
 
 
-def save_models_xyz(db, df_sub, path_pma, bin_step, cluster_id, num_ids):
+def save_models_xyz(db, db_name, df_sub, path_pma, bin_step, cluster_id, num_ids):
     data = df_sub.drop_duplicates(subset=['hash']).values
     for num, (_, hash, count, mol_name, isomer_id, conf_id, feature_ids) in enumerate(data):
         pharm = Pharmacophore(bin_step=bin_step, cached=True)
         pharm.load_from_feature_coords(db.get_pharm(mol_name)[isomer_id][conf_id])
-        pharm.save_to_xyz(os.path.join(path_pma, f"{cluster_id}_f{num_ids}_p{num}.xyz"))
+        pharm.save_to_xyz(os.path.join(path_pma, f"{db_name}.{cluster_id}_f{num_ids}_p{num}.xyz"))
                           #tuple(map(int, feature_ids.split(','))))
     return len(data)
 
 
 def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfeatures, upper, nfeatures, save_statistics):
     time_start = time.time()
-    out_pma = os.path.join(out_pma, os.path.splitext(os.path.basename(in_db))[0])
+    db_name = os.path.splitext(os.path.basename(in_db))[0]
     os.makedirs(out_pma, exist_ok=True)
     cluster_id = os.path.splitext(os.path.basename(trainset))[0]
     designating = ['1', '0']  # molecular activity
@@ -134,8 +134,8 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
     df_sub = _keep_best_models(df, df_sub, save_statistics, current_nfeatures)
     if nfeatures is not None:
         if current_nfeatures >= nfeatures:
-            _ = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id,
-                                current_nfeatures)
+            _ = save_models_xyz(db, db_name, df_sub[df_sub['activity'] == designating[0]],
+                                out_pma, bin_step, cluster_id, current_nfeatures)
 
     while True:
         if current_nfeatures == upper:
@@ -150,10 +150,10 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
         df_sub = _keep_best_models(df, df_sub_2, save_statistics, current_nfeatures)
         if nfeatures is not None:
             if current_nfeatures >= nfeatures:
-                _ = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]],
+                _ = save_models_xyz(db, db_name, df_sub[df_sub['activity'] == designating[0]],
                                     out_pma, bin_step, cluster_id, current_nfeatures)
 
-    num_models = save_models_xyz(db, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id, current_nfeatures)
+    num_models = save_models_xyz(db, db_name, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id, current_nfeatures)
     sys.stderr.write(f'train set {cluster_id}: {num_models} models ({round(time.time()-time_start, 3)}s)\n')
     sys.stderr.flush()
 
