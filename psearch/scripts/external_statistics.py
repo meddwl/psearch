@@ -67,23 +67,32 @@ def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
     fp = len(inact_screen)
     tn = n - fp
 
-    recall = tp / p
-    tnr = tn / n
-    fpr = fp / n
-    ba = (recall + tnr) / 2
+    try:
+        recall = tp / p
+    except ZeroDivisionError:
+        recall = None
+    try:
+        tnr = tn / n
+        fpr = fp / n
+    except ZeroDivisionError:
+        tnr, fpr = None, None
+    if recall and tnr:
+        ba = (recall + tnr) / 2
+    else:
+        ba = None
 
     try:
         precision = tp / (tp + fp)
     except ZeroDivisionError:
-        precision = 'NaN'
+        precision = None
 
-    if precision != 'NaN':
+    if precision:
         ef = precision / (p / (p + n))
         f1 = (2 * precision * recall) / (precision + recall)
         f2 = (5 * precision * recall) / (4 * precision + recall)
         f05 = (1.25 * precision * recall) / (0.25 * precision + recall)
     else:
-        ef, f1, f2, f05 = 'NaN', 'NaN', 'NaN', 'NaN'
+        ef, f1, f2, f05 = None, None, None, None
     return terget_id, model_id, tp, fp, p, n, precision, recall, fpr, f1, f2, f05, ba, ef, num_uniq_features, medge, labels
 
 
@@ -139,6 +148,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     calc_stat(path_mols=os.path.abspath(args.molecules),
               path_ts=os.path.abspath(args.trainset),
-              path_pma=os.path.abspath(args.models),
+              pp_models=os.path.abspath(args.models),
               path_screen=os.path.abspath(args.screen),
               out_external=os.path.abspath(args.output) if args.output else os.path.join(os.path.dirname(args.molecules), 'result.txt'))
