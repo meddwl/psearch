@@ -10,8 +10,7 @@ import os
 import pandas as pd
 import argparse
 from collections import defaultdict
-default_modelstat = os.path.join(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0],
-                                             'pharmacophores', 'pharmacophores_stat.csv')
+default_modelstat = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pharmacophores', 'pharmacophores_stat.csv')
 
 def calc_probability(df_vs, df_precision, target_id, scoring_scheme):
     df = df_vs.mul(df_precision['precision'].astype(float), axis=0)

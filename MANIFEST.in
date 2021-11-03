@@ -1,4 +1,4 @@
 include pmapper/smarts_features.txt
 include pmapper/smarts_features.fdef
-recursive-include pharmacophores *
-recursive-include pharmacophores chembl_models *
+recursive-include psearch/pharmacophores *
+recursive-include psearch/pharmacophores chembl_models *
