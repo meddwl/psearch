@@ -232,4 +232,4 @@ Cn1cc(-c2ccc(Cc3[nH]nc4ccc(C(=O)N5CC[C@H](O)C5)cc34)cc2)cn1	CHEMBL3775321	0
 Cn1cc(-c2ccc(Cc3[nH]nc4ccc(C(=O)N5CC[C@@H](O)C5)cc34)cc2)cn1	CHEMBL3775317	0
 CC(=O)N1CCC(n2cc(Nc3ncc(Cl)c(-c4cnc5ccccn45)n3)cn2)CC1	CHEMBL3823659	0
 Cc1nn(C2CCN(C(=O)[C@@H](C)O)CC2)c(C)c1Nc1ncc(Cl)c(-c2cnn3ccccc23)n1	CHEMBL3823030	0
-COc1cccc(C(=O)N2c3ccccc3[Se]c3ccc(Cl)cc32)c1	CHEMBL3769537   0
+COc1cccc(C(=O)N2c3ccccc3[Se]c3ccc(Cl)cc32)c1	CHEMBL3769537	0
