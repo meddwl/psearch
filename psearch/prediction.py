@@ -39,9 +39,10 @@ def main(pp_vs, pp_models_stat, scoring_scheme, pp_output):
         vs_files[target_id].append(os.path.join(pp_vs, fname))
 
     res = pd.DataFrame()
-    for target_id, fvs in vs_files.items():
+    target_ids = sorted(vs_files.keys())
+    for target_id in target_ids:
         df_models = df_models_stat[df_models_stat['target_id'] == target_id]
-        df_vs = input_processing(fvs, df_models.index.tolist())
+        df_vs = input_processing(vs_files[target_id], df_models.index.tolist())
         df_res = calc_probability(df_vs, df_models, target_id, scoring_scheme)
         res = res.merge(df_res, left_index=True, right_index=True, how='outer')
     # res = res.transpose()
@@ -67,8 +68,8 @@ def entry_point():
                         help='output text file where will be saved the prediction')
 
     args = parser.parse_args()
-    model_stat = default_modelstat if not args.models_stat else os.path.abspath(args.models_stat)
-    main(os.path.abspath(args.path_vs), model_stat, args.scoring_scheme, os.path.abspath(args.output))
+    pharm_stat = default_modelstat if not args.pharm_stat else os.path.abspath(args.pharm_stat)
+    main(os.path.abspath(args.path_vs), pharm_stat, args.scoring_scheme, os.path.abspath(args.output))
 
 
 if __name__ == '__main__':
