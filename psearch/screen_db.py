@@ -5,6 +5,8 @@
 # ==============================================================================
 
 import os
+import sys
+import time
 import argparse
 from collections import namedtuple
 from pmapper.pharmacophore import Pharmacophore
@@ -49,6 +51,8 @@ def create_parser():
                              'score by the conformer coverage approach (CCA).')
     parser.add_argument('-c', '--ncpu', metavar='INTEGER', default=1, type=int,
                         help='number of cores to use. Default: 1.')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='print progress to STDERR.')
     return parser
 
 
@@ -144,7 +148,9 @@ def save_results(results, output_sdf, db):
                 w.close()
 
 
-def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_features, ncpu):
+def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_features, ncpu, verbose):
+
+    start_time = time.time()
 
     if output.endswith('.txt') or output.endswith('.sdf'):
         if not os.path.exists(os.path.dirname(output)):
@@ -167,18 +173,25 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 
     comp_names = db.get_mol_names()
 
-    # print(comp_names)
-
     if ncpu == 1:
-        for comp_name in comp_names:
+        for i, comp_name in enumerate(comp_names, 1):
             res = screen(mol_name=comp_name, db=db, models=models, output_sdf=output_sdf, match_first_conf=match_first_conf)
             if res:
                 save_results(res, output_sdf, db)
+            if verbose and i % 10 == 0:
+                current_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+                sys.stderr.write('\r{} molecules passed/conformers {}'.format(i, current_time))
+                sys.stderr.flush()
     else:
         p = Pool(ncpu)
-        for res in p.imap_unordered(partial(screen, db=db, models=models, output_sdf=output_sdf, match_first_conf=match_first_conf), comp_names, chunksize=10):
+        for i, res in enumerate(p.imap_unordered(partial(screen, db=db, models=models, output_sdf=output_sdf,
+                                            match_first_conf=match_first_conf), comp_names, chunksize=10), 1):
             if res:
                 save_results(res, output_sdf, db)
+            if verbose and i % 10 == 0:
+                current_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+                sys.stderr.write('\r{} molecules screened {}'.format(i, current_time))
+                sys.stderr.flush()
         p.close()
 
     # remove output dir if it is empty
@@ -195,7 +208,8 @@ def entry_point():
               output_sdf=args.output_sdf,
               match_first_conf=not args.conf,
               min_features=args.min_features,
-              ncpu=args.ncpu)
+              ncpu=args.ncpu,
+              verbose=args.verbose)
 
 
 if __name__ == '__main__':
