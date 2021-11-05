@@ -25,8 +25,7 @@ def create_parser():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--dbname', metavar='FILENAME.dat', type=str, required=True,
                         help='input database with generated conformers and pharmacophores.')
-    parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', type=str, nargs='+',
-                        default=[os.path.join(path_query, q) for q in os.listdir(path_query)],
+    parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', type=str, nargs='+', default=None,
                         help='pharmacophore model(s) or directory path(s). If a directory is specified all '
                              'pma- and xyz-files will be used for screening as pharmacophore models.'
                              'The ligand-based pharmacophore models, that created from the ChEMBL database '
@@ -191,7 +190,7 @@ def entry_point():
     parser = create_parser()
     args = parser.parse_args()
     screen_db(db_fname=args.dbname,
-              queries=args.query,
+              queries=[os.path.join(path_query, q) for q in os.listdir(path_query)] if not args.query else args.query,
               output=args.output,
               output_sdf=args.output_sdf,
               match_first_conf=not args.conf,

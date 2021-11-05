@@ -56,10 +56,9 @@ def entry_point():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-vs', '--path_vs', metavar='path/to/vs/res', required=True,
                         help='path to the virtual screening result')
-    parser.add_argument('-stat', '--models_stat', metavar='pharmacophores_stat.csv',
-                        default=default_modelstat,
+    parser.add_argument('-stat', '--models_stat', metavar='pharmacophores_stat.csv', default=None,
                         help='file with the calculated precision of pharmacophore models. '
-                             'By default, statistics are used for the chembl models, which are in pserch.')
+                             'By default, statistics of psearch pharmacophore models are used.')
     parser.add_argument('-s', '--scoring_scheme', default='mean',
                         help='two schemes (Max and Mean) of probability calculation for consensus prediction '
                              'based on individual pharmacophore models were proposed')
@@ -67,8 +66,8 @@ def entry_point():
                         help='output text file where will be saved the prediction')
 
     args = parser.parse_args()
-    main(os.path.abspath(args.path_vs), os.path.abspath(args.models_stat),
-         args.scoring_scheme, os.path.abspath(args.output))
+    model_stat = default_modelstat if not args.models_stat else os.path.abspath(args.models_stat)
+    main(os.path.abspath(args.path_vs), model_stat, args.scoring_scheme, os.path.abspath(args.output))
 
 
 if __name__ == '__main__':
