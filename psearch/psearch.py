@@ -19,7 +19,7 @@ def create_parser():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--project_dir', metavar='DIRNAME', type=str, default=None,
                         help='A path to a project dir. Directory where all intermediate and output files will be saved.')
-    parser.add_argument('-i', '--molecules', metavar='molecules.smi', type=str, required=True,
+    parser.add_argument('-i', '--molecules', metavar='FILENAME.smi', type=str, required=True,
                         help='The script takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, '
                              '`activity` columns'
                              'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactives.')
@@ -72,12 +72,12 @@ def creating_pharmacophore_mp(items):
     return creating_pharmacophore(*items)
 
 
-def get_items(in_db, list_ts, path_pma, upper, lower, save_model_complexity, bin_step, tolerance):
+def get_items(in_db, list_ts, path_pma, upper, lower, save_model_complexity, bin_step, tolerance, save_stat):
     for train_set in list_ts:
-        yield in_db, train_set, path_pma, upper, lower, save_model_complexity, bin_step, tolerance
+        yield in_db, train_set, path_pma, upper, lower, save_model_complexity, bin_step, tolerance, save_stat
 
 
-def creating_pharmacophore(in_db, train_set, path_pma, upper, lower, save_model_complexity, bin_step, tolerance):
+def creating_pharmacophore(in_db, train_set, path_pma, upper, lower, save_model_complexity, bin_step, tolerance, save_stat):
     gen_pharm_models(in_db=in_db,
                      trainset=train_set,
                      out_pma=path_pma,
@@ -86,25 +86,13 @@ def creating_pharmacophore(in_db, train_set, path_pma, upper, lower, save_model_
                      tolerance=tolerance,
                      current_nfeatures=lower,
                      nfeatures=save_model_complexity,
-                     save_statistics=False)
-
-
-def pharmacophore_validation(mols, in_db, path_ts, path_pma, path_screen, pp_external_stat):
-    screen_db(db_fname=in_db, queries=[os.path.join(path_pma, mm) for mm in os.listdir(path_pma)],
-              output=path_screen, output_sdf=None,
-              match_first_conf=True, min_features=None, ncpu=1)
-
-    calc_stat(path_mols=mols,
-              path_ts=path_ts,
-              pp_models=path_pma,
-              path_screen=path_screen,
-              out_external=pp_external_stat)
+                     save_statistics=save_stat)
 
 
 def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, path_clus_stat,
-         mode_train_set, fcfp4, threshold, tolerance, lower, save_model_complexity, upper, bin_step, ncpu):
+         mode_train_set, fcfp4, threshold, tolerance, lower, save_model_complexity, upper, bin_step, ncpu, save_stat):
 
-    p = Pool(ncpu)
+    # formation of a training set
     list_ts = trainingset_formation(input_mols=in_mols,
                                     path_ts=path_ts,
                                     mode_train_set=mode_train_set,
@@ -115,31 +103,40 @@ def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, pat
     if type(list_ts) == str:
         sys.exit(list_ts)
 
+    p = Pool(ncpu)
     for _ in p.imap(creating_pharmacophore_mp, get_items(in_db=in_db, list_ts=list_ts, path_pma=path_pma,
                                                          upper=upper, lower=lower,
                                                          save_model_complexity=save_model_complexity,
-                                                         bin_step=bin_step, tolerance=tolerance)):
+                                                         bin_step=bin_step, tolerance=tolerance, save_stat=save_stat)):
         continue
+    p.close()
 
-    pharmacophore_validation(mols=in_mols,
-                             in_db=in_db,
-                             path_ts=path_ts,
-                             path_pma=path_pma,
-                             path_screen=path_screen,
-                             pp_external_stat=path_external_stat)
+    # validation of the created pharmacophore queries
+    screen_db(db_fname=in_db,
+              queries=[os.path.join(path_pma, mm) for mm in os.listdir(path_pma)],
+              output=path_screen, output_sdf=None,
+              match_first_conf=True, min_features=None,
+              ncpu=ncpu, verbose=True)
+
+    calc_stat(path_mols=in_mols,
+              path_ts=path_ts,
+              pp_models=path_pma,
+              path_screen=path_screen,
+              out_external=path_external_stat)
 
 
 def entry_point():
     parser = create_parser()
     args = parser.parse_args()
-    project_dir = args.project_dir if args.project_dir else os.path.dirname(os.path.abspath(args.molecules))
+    project_dir = os.path.abspath(args.project_dir) if args.project_dir else os.path.dirname(os.path.abspath(args.molecules))
     os.makedirs(project_dir, exist_ok=True)
     main(in_mols=os.path.abspath(args.molecules),
          in_db=os.path.abspath(args.database),
-         path_ts=args.trainset if args.trainset else os.path.join(project_dir, 'trainset'),
-         path_pma=args.query if args.query else os.path.join(project_dir, 'models'),
-         path_screen=args.screening if args.screening else os.path.join(project_dir, 'screen'),
-         path_external_stat=args.external_statistics if args.external_statistics else os.path.join(project_dir, 'results', 'external_statistics.txt'),
+         path_ts=os.path.abspath(args.trainset) if args.trainset else os.path.join(project_dir, 'trainset'),
+         path_pma=os.path.abspath(args.query) if args.query else os.path.join(project_dir, 'models'),
+         path_screen=os.path.abspath(args.screening) if args.screening else os.path.join(project_dir, 'screen'),
+         path_external_stat=os.path.abspath(args.external_statistics) if args.external_statistics else
+                            os.path.join(project_dir, 'results', 'external_statistics.txt'),
          path_clus_stat=os.path.join(project_dir, 'cluster_stat_t{}.txt'.format(args.threshold)),
          mode_train_set=args.mode_train_set,
          fcfp4=args.fcfp4,
@@ -149,7 +146,8 @@ def entry_point():
          lower=int(args.lower),
          save_model_complexity=int(args.save_model_complexity) if args.save_model_complexity else None,
          upper=int(args.upper) if args.upper is not None else None,
-         ncpu=int(args.ncpu))
+         ncpu=int(args.ncpu),
+         save_stat=False)
 
 
 if __name__ == '__main__':
