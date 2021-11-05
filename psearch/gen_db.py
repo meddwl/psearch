@@ -136,7 +136,7 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
     try:
         for i, (mol_name, mol_dict, ph_dict, fp_dict) in enumerate(
                 p.imap_unordered(map_gen_data, prep_input(in_fname, nconf, nstereo, energy, rms, seed, bin_step,
-                                                          pharm_def), chunksize=10), 1):
+                                                          pharm_def), chunksize=1), 1):
             if output_file_type == 'shelve':
                 db.write_mol(mol_name, mol_dict)
                 db.write_pharm(mol_name, ph_dict)
