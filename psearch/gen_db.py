@@ -25,12 +25,15 @@ from psearch.database import DB
 
 def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
     box_mol_names = set()
+    box_mols = set()
     for mol, mol_name in read_input(fname):
         if mol_name in box_mol_names:
-            sys.stderr.write(f'The molecule named {mol_name} meets the second time and will be omitted\n')
-            continue
+            sys.stderr.write(f'\nThe molecule name {mol_name} meets the second time and will be omitted\n')
+        elif mol in box_mols:
+            sys.stderr.write(f'\nThe molecule {mol} meets the second time and will be omitted\n')
         else:
             box_mol_names.add(mol_name)
+            box_mols.add(mol)
         yield mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_def
 
 
@@ -167,28 +170,24 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
     # create new smi file if the input file has bad molecule structure(-s)
     else:
         if len(open(in_fname).readlines()) - 1 > len(db.get_mol_names()):
+            sys.stderr.write("\nWarning: Some molecules were omitted from the original .smi file. All the original "
+                             "molecules will be saved in a backup file\n")
             df_in = pd.read_csv(in_fname, sep='\t')
             cols = df_in.columns.tolist()
             df_in = df_in[df_in[cols[1]].isin(db.get_mol_names())]
             cols = df_in.columns.tolist()
             if len(cols) == 3:
-                df_in = df_in.astype({cols[3]: int})
+                df_in = df_in.astype({cols[2]: int})
             file_name = os.path.basename(in_fname)
             pp_dirname = os.path.dirname(in_fname)
             file_name_new = f'#{file_name}.1#'
-            num = 0
-            pref = ''
             for ll in os.listdir(pp_dirname):
                 if os.path.isfile(os.path.join(pp_dirname, ll)) and os.path.splitext(file_name)[0] in ll and '#' in ll:
-                    n = int(ll.split('.')[-1].split('#')[0])
-                    if num < n:
-                        num = n
-                        pref = '.'.join(ll.split('.')[:-1])
-            if num != 0:
-                file_name_new = pref + f'.{num + 1}#'
+                    num = int(ll.split('.')[-1].split('#')[0])
+                    pref = '.'.join(ll.split('.')[:-1])
+                    file_name_new = pref + f'.{num + 1}#'
             os.rename(os.path.join(pp_dirname, file_name), os.path.join(pp_dirname, file_name_new))
-            pp_out = os.path.join(os.path.dirname(in_fname), file_name)
-            df_in.to_csv(pp_out, sep='\t', index=None)
+            df_in.to_csv(os.path.join(os.path.dirname(in_fname), file_name), sep='\t', index=None)
 
     if verbose:
         sys.stderr.write("\n")
@@ -236,8 +235,8 @@ def entry_point():
     if fname in os.listdir(pdir):
         sys.exit("A database with this name already exists")
 
-    create_db(in_fname=args.in_fname,
-              out_fname=fdb,
+    create_db(in_fname=os.path.abspath(args.in_fname),
+              out_fname=os.path.abspath(fdb),
               nconf=args.nconf,
               nstereo=args.nstereo,
               energy=args.energy_cutoff,
