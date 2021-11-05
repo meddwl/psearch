@@ -161,27 +161,27 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
 def create_parser():
     parser = argparse.ArgumentParser(description='Iteratively create ligand-based pharmacophore models.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-db', '--database', metavar='active.db', required=True,
+    parser.add_argument('-i', '--database', metavar='FILENAME.dat', required=True,
                         help='Input SQL database file with active compounds')
-    parser.add_argument('-o', '--models', metavar='output/path', required=False, default=None,
+    parser.add_argument('-o', '--models', metavar='DIRNAME', required=False, default=None,
                         help='Output path to a folder where will be saved the created pharmacophore models.'
                              'If omitted, the path will be generated automatically relative to project directory.')
-    parser.add_argument('-ts', '--trainset', metavar='training_set.txt', required=True,
+    parser.add_argument('-ts', '--trainset', metavar='FILENAME.txt', required=True,
                         help='Path to tab-separated txt file with information about molecules from a training set.'
-                             'Columns: SMILES, MOL_ID, ACTIVITY')
+                             'Required columns: SMILES, MOL_ID, ACTIVITY')
     parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', type=float, default=0,
                         help='tolerance used for calculation of a stereoconfiguration sign.')
-    parser.add_argument('-b', '--bin_step', type=int, required=False, default=1,
+    parser.add_argument('-b', '--bin_step', metavar='INTEGER', type=int, default=1,
                         help='binning step.')
-    parser.add_argument('-u', '--upper', type=int,  required=False, default=None,
+    parser.add_argument('-u', '--upper', type=int,  metavar='INTEGER', default=None,
                         help='limit the upper number of features in generated pharmacophores. '
                              'If omitted pharmacophores of maximum complexity will be generated.')
-    parser.add_argument('-l', '--lower', type=int, default=3,
+    parser.add_argument('-l', '--lower', metavar='INTEGER', type=int, default=3,
                         help='starting from this number of features, pharmacophore models will be created')
-    parser.add_argument('-sm', '--save_model_complexity', type=int, required=False, default=None,
+    parser.add_argument('-f', '--save_model_complexity', type=int, metavar='INTEGER', default=None,
                         help='All pharmacophore models will be saved starting from this number of features.'
                              'If omitted will be saved only the most complex pharmacophore models')
-    parser.add_argument('-s', '--save_statistics', type=bool, required=False, default=False,
+    parser.add_argument('-s', '--save_statistics', action='store_true', default=False,
                         help='If True the intermediate statistics of pharmacophore models generation will be stored')
     return parser
 

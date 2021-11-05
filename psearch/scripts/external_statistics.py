@@ -125,19 +125,19 @@ def create_parser():
                                                  'If the metric cannot be calculated (dividing by zero), '
                                                  'NaN will be printed',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--molecules', metavar='molecules.smi', required=True,
+    parser.add_argument('-i', '--molecules', metavar='FILENAME.smi', required=True,
                         help='The script takes as input a tab-separated SMILES file containing `SMILES`, '
                              '`compound id`, `activity` columns. '
                              'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactive ones.')
-    parser.add_argument('-t', '--trainset', metavar='path/to/trainset', required=True,
+    parser.add_argument('-t', '--trainset', metavar='DIRNAME', required=True,
                         help='A path to the folder where will be saved a training set.'
                              'If omitted, the path will be generated automatically relative to project directory.')
-    parser.add_argument('-m', '--models', metavar='path/to/models', required=True,
+    parser.add_argument('-m', '--models', metavar='DIRNAME', required=True,
                         help='A path to a folder where will be saved the created pharmacophore models.'
                              'If omitted, the path will be generated automatically relative to project directory.')
-    parser.add_argument('-s', '--screen', metavar='path/to/screen', required=True,
+    parser.add_argument('-s', '--screen', metavar='DIRNAME', required=True,
                         help='path to the folder with the virtual screening results')
-    parser.add_argument('-o', '--output', metavar='external_statistics.txt', default=None,
+    parser.add_argument('-o', '--output', metavar='FILENAME', default=None,
                         help='An output text file where will be saved validation statistics.'
                              'If omitted, the path will be generated automatically relative to project directory.')
     return parser

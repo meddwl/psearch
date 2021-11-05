@@ -17,21 +17,21 @@ from psearch.scripts.select_training_set_rdkit import trainingset_formation
 def create_parser():
     parser = argparse.ArgumentParser(description='Ligand-based pharmacophore model building',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-p', '--project_dir', type=str, default=None,
+    parser.add_argument('-p', '--project_dir', metavar='DIRNAME', type=str, default=None,
                         help='A path to a project dir. Directory where all intermediate and output files will be saved.')
     parser.add_argument('-i', '--molecules', metavar='molecules.smi', type=str, required=True,
                         help='The script takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, '
                              '`activity` columns'
                              'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactives.')
-    parser.add_argument('-db', '--database', metavar='FILENAME', type=str, required=True,
+    parser.add_argument('-d', '--database', metavar='FILENAME.dat', type=str, required=True,
                         help='Path to the database with precomputed conformers and pharmacophores for the same input file.')
-    parser.add_argument('-ts', '--trainset', metavar='path/training/set', type=str, default=None,
+    parser.add_argument('-ts', '--trainset', metavar='DIRNAME', type=str, default=None,
                         help='A path to the folder where will be saved a training set.'
                              'If omitted, the path will be generated automatically relative to project directory.')
-    parser.add_argument('-q', '--query', metavar='path/to/models/', type=str, default=None,
+    parser.add_argument('-q', '--query', metavar='DIRNAME', type=str, default=None,
                         help='A path to a folder where will be saved the created pharmacophore models.'
                              'If omitted, the path will be generated automatically relative to project directory.')
-    parser.add_argument('-s', '--screening', metavar='path/to/screen/output', type=str, default=None,
+    parser.add_argument('-s', '--screening', metavar='DIRNAME', type=str, default=None,
                         help='A text (.txt) file which will store names of compounds which fit the model. In the case '
                              'multiple query models or directories were supplied as input'
                              'this should be the path to a directory where output files will be created to store '
@@ -39,31 +39,31 @@ def create_parser():
                              'directories will be created in the output dir. Names of created  directories will be '
                              'taken from the bottom level of input directories, e.g. path/to/model/ will be stored in '
                              'output_dir/model. Beware, existed output files/directories will be overwritten.')
-    parser.add_argument('-r', '--external_statistics', metavar='path/external/statistics', default=None,
+    parser.add_argument('-r', '--external_statistics', metavar='FILENAME', default=None,
                         help='An output text file where will be saved validation statistics'
                              'If omitted, the path will be generated automatically relative to project directory.')
-    parser.add_argument('-mts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
+    parser.add_argument('-m', '--mode_train_set', nargs='+', type=int, default=[1, 2],
                         help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
                              '1 - a single training set will be created from centroids of individual clusters, '
                              '2 - multiple training sets will be created, one per cluster.')
     parser.add_argument('--fcfp4', action='store_true', default=False,
                         help='If set FCFP4 fingerprints will be used for compound clustering, '
                              'otherwise pharmacophore fingerprints will be used.')
-    parser.add_argument('-thr', '--threshold', metavar='NUMERIC', type=float, default=0.4,
+    parser.add_argument('-t', '--threshold', metavar='NUMERIC', type=float, default=0.4,
                         help='threshold for сlustering data by Butina algorithm.')
     parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', type=float, default=0,
                         help='tolerance used for calculation of a stereoconfiguration sign.')
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=float, default=1,
                         help='binning step.')
-    parser.add_argument('-l', '--lower', type=int, default=3,
+    parser.add_argument('-l', '--lower', metavar='INTEGER', type=int, default=3,
                         help='starting from this number of features, pharmacophore models will be created')
-    parser.add_argument('-sm', '--save_model_complexity', type=int, required=False, default=None,
+    parser.add_argument('-f', '--save_model_complexity', metavar='INTEGER', type=int, default=None,
                         help='All pharmacophore models will be saved starting from this number of features.'
                              'If omitted will be saved only the most complex pharmacophore models')
     parser.add_argument('-u', '--upper', metavar='INTEGER', type=int, default=None,
                         help='limit the upper number of features in generated pharmacophores. '
                              'If omitted pharmacophores of maximum complexity will be generated.')
-    parser.add_argument('-c', '--ncpu', metavar='cpu_number', default=1,
+    parser.add_argument('-c', '--ncpu', metavar='INTEGER', type=int, default=1,
                         help='number of cpus to use for calculation.')
     return parser
 

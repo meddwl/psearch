@@ -199,7 +199,7 @@ def entry_point():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--in_fname', metavar='FILENAME', required=True, type=str,
                         help='input file of 2D SDF or SMILES format (tab-separated).')
-    parser.add_argument('-d', '--dbname', metavar='FILENAME', required=True, type=str,
+    parser.add_argument('-o', '--dbname', metavar='FILENAME.dat', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
                              '.dat and .dir. If there is a database with the same name, then the tool will stop.')
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=int, default=1,

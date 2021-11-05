@@ -54,15 +54,16 @@ def entry_point():
     parser = argparse.ArgumentParser(description='Determination of the probability of activity of a molecule(-s)'
                                                  'based on pharmacophore VS result',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-vs', '--path_vs', metavar='path/to/vs/res', required=True,
+    parser.add_argument('-s', '--path_vs', metavar='DIRNAME', required=True,
                         help='path to the virtual screening result')
-    parser.add_argument('-stat', '--models_stat', metavar='pharmacophores_stat.csv', default=None,
+    parser.add_argument('-p', '--pharm_stat', metavar='FILENAME', default=None,
                         help='file with the calculated precision of pharmacophore models. '
-                             'By default, statistics of psearch pharmacophore models are used.')
-    parser.add_argument('-s', '--scoring_scheme', default='mean',
+                             'By default, statistics of psearch pharmacophore models are used.'
+                             'Required headers: "target_id", "model_id", "precision"')
+    parser.add_argument('-f', '--scoring_scheme', metavar='KEYWORD', default='mean',
                         help='two schemes (Max and Mean) of probability calculation for consensus prediction '
                              'based on individual pharmacophore models were proposed')
-    parser.add_argument('-o', '--output', metavar='external_statistics.txt', default=None,
+    parser.add_argument('-o', '--output', metavar='FILENAME', default=None,
                         help='output text file where will be saved the prediction')
 
     args = parser.parse_args()

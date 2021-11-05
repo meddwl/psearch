@@ -19,11 +19,11 @@ from pmapper.customize import load_factory
 def create_parser():
     parser = argparse.ArgumentParser(description='select compounds for training set',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--input_mols', metavar='input_molecules.smi', required=True,
+    parser.add_argument('-i', '--input_mols', metavar='FILENAME.smi', required=True,
                         help='The script takes as input a tab-separated SMILES file containing `SMILES`, '
                              '`compound id`, `activity` columns. '
                              'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactive ones.')
-    parser.add_argument('-o', '--output', metavar='output/path', default=None,
+    parser.add_argument('-o', '--output', metavar='DIRNAME', default=None,
                         help='An output path to the folder where will be saved a training set.'
                              'If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-ts', '--mode_train_set', metavar='1 2', nargs='+', type=int, default=[1, 2],
@@ -33,9 +33,9 @@ def create_parser():
     parser.add_argument('--fcfp4', action='store_true', default=False,
                         help='If set FCFP4 fingerprints will be used for compound clustering, '
                              'otherwise pharmacophore fingerprints will be used.')
-    parser.add_argument('-thr', '--threshold_clust', type=float, default=0.4,
+    parser.add_argument('-t', '--threshold_clust', metavar='NUMERIC', type=float, default=0.4,
                         help='threshold for clustering data by Butina algorithm')
-    parser.add_argument('-s', '--save_statistics', default=None,
+    parser.add_argument('-s', '--save_statistics', metavar='FILENAME', default=None,
                         help='If writen path to file then cluster statistics will be saved into this file')
     return parser
 
