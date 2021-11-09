@@ -27,7 +27,7 @@ There are two steps of pharmacophore model generation.
 1. Generation of a database with precomputed conformers and pharmacophores. 
 
 ```python
-gen_db -i cdk8.smi -d dbs/cdk8.dat -c 4 -v
+gen_db -i cdk8.smi -o dbs/cdk8.dat -c 4 -v
 ```
 `-i` - path to the input SMILES file  
 `-o` - path to database (should have extension .dat)  
@@ -70,7 +70,7 @@ train set t4: 21 models (99.114s)
 external_statistics.txt: (0.535s)
 ```
 
-### Virtual screening using pharmacophore models 
+### Virtual screening of a chemical database using pharmacophore models 
 
 1. Database creation using the same procedure as described above.   
 *we skip this step here and will use the same database used for model training.
@@ -78,51 +78,52 @@ external_statistics.txt: (0.535s)
 2. Virtual screening.
   
 ```python
-screen_db -d dbs/cdk8.dat -q my_models/created_pharmacophores/models/ -o my_models/vs/ -c 4
+screen_db -d dbs/cdk8.dat -q my_models/created_pharmacophores/models/ -o my_models/vs/ -c 4 -v
 ```
 `-d` - input generated database  
 `-q` - pharmacophore model or models or a directory with models. If a directory would be specified all pma- and xyz-files will be recognized as pharmacophores and will be used for screening  
 `-o` - path to an output directory if multiple models were supplied for screening or a path to a text/sdf file  
 `-c`- number of CPUs to use  
+`-v` - print progress to STDERR  
 
 If sdf output is desired a user should add `-z` argument which will force output format to be sdf.
 
 3. Calculating probability of the activity of molecules towards the protein and rank molecules.  
 
 ```python
-prediction -vs my_models/vs/models -stat my_models/created_pharmacophores/results/external_statistics.txt -o my_models/results.txt
+prediction -s my_models/vs/models -p my_models/created_pharmacophores/results/external_statistics.txt -f mean -o my_models/results.txt
 ```
-`-vs` - path to the virtual screening result  
-`-stat` - file with the calculated precision of pharmacophore models  
+`-s` - path to the virtual screening result  
+`-p` - file with the calculated precision of pharmacophore models  
+`-f` - one of the two schemes (max and mean) of probability calculation for consensus prediction based on the individual precision of pharmacophore models 
 `-o` - output text file where will be saved the prediction
 
 
-### Multiprofiling the molecules
+### Profiling of molecules using multiple pharmacophores
 
 1. Database creation using the same procedure as described above. 
 
-If you have top-end molecules and you want to multiprofile these molecules, then use the following protocol, 
-which consists of 3 stages. By default, multiprofiling is performed on generated ChEMBL ligand-based pharmacophore models, 
-information about which you can find in the pharmacophores folder.
+The following protocol can be used for profiling of molecules. By default, multiprofiling is performed on 
+psearch ligand-based pharmacophore models which were cheated using data from ChEMBL. Additional information about 
+the psearch pharmacophore models can be found in the pharmacophores folder.
 
 ```python
-gen_db -i top_mols.smi -d dbs/top_mols.dat -c 4
+gen_db -i mols_for_profiling.smi -o dbs/mols_for_profiling.dat -c 4 -v
 ```
 
 2. Virtual screening.
   
 ```python
-screen_db -d dbs/top_mols.dat -o multiprofiling/vs/ -c 4
+screen_db -d dbs/mols_for_profiling.dat -o multiprofiling/vs/ -c 4 -v
 ```
 
 3. Calculating probability of the activity of molecules towards the protein and rank molecules.
 The scheme of how the probability is calculated is described in the [article](https://doi.org/10.3390/molecules25020385) below
 
 ```python
-prediction -vs multiprofiling/vs/ -o multiprofiling/multiprofiling_res.txt
+prediction -s multiprofiling/vs/ -o multiprofiling/result_multiprofiling.txt
 ```
-`-vs` - path to the virtual screening result  
-`-stat` - file with the calculated precision of pharmacophore models  
+`-s` - path to the virtual screening result  
 `-o` - output text file where will be saved the prediction 
 
 ## Documentation
