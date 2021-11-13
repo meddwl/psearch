@@ -105,8 +105,8 @@ def save_models_xyz(db, db_name, df_sub, path_pma, bin_step, cluster_id, num_ids
     for num, (_, hash, count, mol_name, isomer_id, conf_id, feature_ids) in enumerate(data):
         pharm = Pharmacophore(bin_step=bin_step, cached=True)
         pharm.load_from_feature_coords(db.get_pharm(mol_name)[isomer_id][conf_id])
-        pharm.save_to_xyz(os.path.join(path_pma, f"{db_name}.{cluster_id}_f{num_ids}_p{num}.xyz"))
-                          #tuple(map(int, feature_ids.split(','))))
+        pharm.save_to_xyz(os.path.join(path_pma, f"{db_name}.{cluster_id}_f{num_ids}_p{num}.xyz"),
+                          tuple(map(int, feature_ids.split(','))))
     return len(data)
 
 
@@ -123,11 +123,11 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
     df = calc_internal_stat(df_sub[['activity', 'hash', 'count']].drop_duplicates(subset=['activity', 'hash']),
                             positives, clust_strategy, designating)
     if df.empty:
-        sys.stderr.write(f'no {current_nfeatures}-points pharmacophore models for {cluster_id} training set\n')
+        sys.stderr.write(f'train set {cluster_id}: no {current_nfeatures}-points pharmacophore models\n')
         sys.exit(0)
 
     if save_statistics:
-        path_files = os.path.join(out_pma, 'intermediate_statistics')
+        path_files = os.path.join(out_pma, 'intermediate_data')
         os.makedirs(path_files, exist_ok=True)
         save_statistics = [path_files, cluster_id]
 
