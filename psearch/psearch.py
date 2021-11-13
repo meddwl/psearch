@@ -20,9 +20,9 @@ def create_parser():
     parser.add_argument('-p', '--project_dir', metavar='DIRNAME', type=str, default=None,
                         help='A path to a project dir. Directory where all intermediate and output files will be saved.')
     parser.add_argument('-i', '--molecules', metavar='FILENAME.smi', type=str, required=True,
-                        help='The script takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, '
-                             '`activity` columns'
-                             'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactives.')
+                        help='The script takes as input a tab-separated SMILES file containing smiles, compound id and '
+                             'activity columns. The third column should contain a word 1 or 0. 1 is for actives, '
+                             '0 is for inactives.')
     parser.add_argument('-d', '--database', metavar='FILENAME.dat', type=str, required=True,
                         help='Path to the database with precomputed conformers and pharmacophores for the same input file.')
     parser.add_argument('-ts', '--trainset', metavar='DIRNAME', type=str, default=None,
@@ -32,15 +32,12 @@ def create_parser():
                         help='A path to a folder where will be saved the created pharmacophore models.'
                              'If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-s', '--screening', metavar='DIRNAME', type=str, default=None,
-                        help='A text (.txt) file which will store names of compounds which fit the model. In the case '
-                             'multiple query models or directories were supplied as input'
-                             'this should be the path to a directory where output files will be created to store '
-                             'screening results. If multiple directories were specified as input the corresponding '
-                             'directories will be created in the output dir. Names of created  directories will be '
-                             'taken from the bottom level of input directories, e.g. path/to/model/ will be stored in '
-                             'output_dir/model. Beware, existed output files/directories will be overwritten.')
+                        help='In the screen folder will be stored the results of virtual screening on the input database'
+                             ' using the created models. This is needed for calculation external statistics. '
+                             'It is a step of the created pharmacophore models validation. '
+                             'If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-r', '--external_statistics', metavar='FILENAME', default=None,
-                        help='An output text file where will be saved validation statistics'
+                        help='An output text file where will be saved validation statistics. '
                              'If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-m', '--mode_train_set', nargs='+', type=int, default=[1, 2],
                         help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
@@ -130,14 +127,16 @@ def entry_point():
     args = parser.parse_args()
     project_dir = os.path.abspath(args.project_dir) if args.project_dir else os.path.dirname(os.path.abspath(args.molecules))
     os.makedirs(project_dir, exist_ok=True)
+    pp_model = os.path.abspath(args.query) if args.query else os.path.join(project_dir, 'models')
+    os.makedirs(pp_model, exist_ok=True)
     main(in_mols=os.path.abspath(args.molecules),
          in_db=os.path.abspath(args.database),
          path_ts=os.path.abspath(args.trainset) if args.trainset else os.path.join(project_dir, 'trainset'),
-         path_pma=os.path.abspath(args.query) if args.query else os.path.join(project_dir, 'models'),
-         path_screen=os.path.abspath(args.screening) if args.screening else os.path.join(project_dir, 'screen'),
+         path_pma=pp_model,
+         path_screen=os.path.abspath(args.screening) if args.screening else os.path.join(project_dir, 'raw_screen'),
          path_external_stat=os.path.abspath(args.external_statistics) if args.external_statistics else
-                            os.path.join(project_dir, 'results', 'external_statistics.txt'),
-         path_clus_stat=os.path.join(project_dir, 'cluster_stat_t{}.txt'.format(args.threshold)),
+                            os.path.join(project_dir, 'external_statistics.txt'),
+         path_clus_stat=os.path.join(pp_model, 'cluster_stat_trh{}.txt'.format(args.threshold)),
          mode_train_set=args.mode_train_set,
          fcfp4=args.fcfp4,
          threshold=float(args.threshold),
