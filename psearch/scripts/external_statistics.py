@@ -50,6 +50,7 @@ def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
     df_mols = pd.read_csv(path_mols, sep='\t', header=None).rename(columns={0: 'smiles', 1: 'mol_name', 2: 'activity'})
     if not Chem.MolFromSmiles(df_mols.at[0, 'smiles']):
         df_mols.drop(index=0, inplace=True)
+    df_mols = df_mols.astype(str)
     df_act = df_mols[(df_mols['activity'] == '1') & (~df_mols['mol_name'].isin(ts_act_mol))]
     df_inact = df_mols[(df_mols['activity'] == '0') & (~df_mols['mol_name'].isin(ts_inact_mol))]
 
@@ -117,7 +118,7 @@ def calc_stat(path_mols, path_ts, pp_models, path_screen, out_external):
     df_result = df_result.sort_values(by=['recall', 'F05', 'F2'], ascending=False)
     df_result = round(df_result, 3)
     df_result.to_csv(out_external, index=None, sep='\t')
-    sys.stderr.write(f'{os.path.basename(out_external)}: ({round(time.time() - start_time, 3)}s)\n\n')
+    sys.stderr.write(f'\n{os.path.basename(out_external)}: ({round(time.time() - start_time, 3)}s)\n')
 
 
 def create_parser():
