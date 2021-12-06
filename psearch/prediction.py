@@ -68,6 +68,7 @@ def entry_point():
                         help='output text file where will be saved the prediction')
 
     args = parser.parse_args()
+    os.makedirs(args.output, exist_ok=True)
     pharm_stat = default_modelstat if not args.pharm_stat else os.path.abspath(args.pharm_stat)
     main(os.path.abspath(args.path_vs), pharm_stat, args.scoring_scheme, os.path.abspath(args.output))
 
