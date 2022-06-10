@@ -34,11 +34,11 @@ def main():
              """, formatter_class=RawTextArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--dbdir', metavar='database.dir', required=True, type=str,
                         help='path to a psearch database')
-    parser.add_argument('-m', '--mol_id', metavar='molecule_name', required=True, type=str,
+    parser.add_argument('-m', '--mol_id', metavar='molecule_name', nargs='+', required=True, type=str,
                         help='molecule ID of a required conformer(-s) in the psearch database')
-    parser.add_argument('-s', '--stereo_id', metavar='stereo_id', required=True, type=int,
+    parser.add_argument('-s', '--stereo_id', metavar='stereo_id', nargs='+', required=True, type=int,
                         help='stereo ID of a required conformer(-s) in the psearch database')
-    parser.add_argument('-c', '--conf_id', metavar='conformer_id', required=True, type=int,
+    parser.add_argument('-c', '--conf_id', metavar='conformer_id', nargs='+', required=True, type=int,
                         help='conformer ID of a required conformer(-s) in the psearch database')
     parser.add_argument('-o', '--output', metavar='DIRNAME', required=True, type=str,
                         help='a folder path where will be saved the results')
