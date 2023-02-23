@@ -18,10 +18,12 @@ pip install psearch
 It is recommended to create an empty dir which would be your `$PROJECT_DIR` and copy an input file to that location.  
 There are two steps of pharmacophore model generation.  
 
+> **_NOTE:_**  On a mac, all the commands may need to be prefixed by "python3 -m" since there are conflicting versions of python installations
+
 1. Dataset preparation. 
 
 ```python
-prepare_datatset -i $PROJECT_DIR/input.smi -c 4
+psearch.prepare_datatset -i $PROJECT_DIR/input.smi -c 4
 ```
 `-i` - path to the input file  
 `-c` - number of CPUs to use  
@@ -51,7 +53,7 @@ By default both strategies are used.
 The script takes as input a tab-separated SMILES file containing `SMILES` and `compound id` columns.
 
 ```python
-prepare_db -i compounds.smi -o compounds.db -c 4 -v
+psearch.prepare_db -i $PROJECT_DIR/compounds.smi -o $PROJECT_DIR/compounds.db -c 4 -v
 ```
 `-i` - path to the input file  
 `-c` - number of CPUs to use
@@ -61,7 +63,7 @@ There are other arguments available to tweak database generation. To get the ful
 2. Virtual screening.
   
 ```python
-screen_db -d compounds.db -q $PROJECT_DIR/models/ -o screen_results/ -c 4
+psearch.scripts.screen_db -d compounds.db -q $PROJECT_DIR/models/ -o $PROJECT_DIR/screen_results/ -c 4
 ```
 `-d` - input generated SQLite database  
 `-q` - pharmacophore model or models or a directory with models   
