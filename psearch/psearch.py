@@ -11,7 +11,7 @@ from multiprocessing import Pool
 from psearch.screen_db import screen_db
 from psearch.scripts.external_statistics import calc_stat
 from psearch.scripts.gen_pharm_models import gen_pharm_models
-from psearch.scripts.select_training_set_rdkit import trainingset_formation
+from psearch.scripts.select_training_set import trainingset_formation
 
 
 def create_parser():

@@ -112,6 +112,7 @@ def screen(mol_name, db, models, output_sdf, match_first_conf):
         return (query_fp & fp) == query_fp
 
     get_transform_matrix = output_sdf
+    get_rms = output_sdf
 
     confs = load_confs(mol_name, db)
 
@@ -119,10 +120,11 @@ def screen(mol_name, db, models, output_sdf, match_first_conf):
     for model in models:
         for conf in confs:
             if compare_fp(model.fp, conf.fp):
-                res = conf.pharmacophore.fit_model(model.pharmacophore, get_transform_matrix=get_transform_matrix)
+                res = conf.pharmacophore.fit_model(model.pharmacophore,
+                                                   get_transform_matrix=get_transform_matrix, get_rms=get_rms)
                 if res:
                     if get_transform_matrix:
-                        output.append((mol_name, conf.stereo_id, conf.conf_id, model.output_filename, res[1]))
+                        output.append((mol_name, conf.stereo_id, conf.conf_id, model.output_filename, res[1], res[2]))
                     else:
                         output.append((mol_name, conf.stereo_id, conf.conf_id, model.output_filename))
                     if match_first_conf:
@@ -138,10 +140,12 @@ def save_results(results, output_sdf, db):
         with open(out_fname, 'at') as f:
             f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
     if output_sdf:
-        for mol_name, stereo_id, conf_id, out_fname, matrix in results:
+        for mol_name, stereo_id, conf_id, out_fname, matrix, rms in results:
+            # print('!'*8, type(rms), rms)
             m = db.get_mol(mol_name)[stereo_id]
             AllChem.TransformMol(m, matrix, conf_id)
             m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
+            m.SetProp("RMSD", str(round(rms, 4)))
             with open(os.path.splitext(out_fname)[0] + '.sdf', 'a') as f:
                 w = Chem.SDWriter(f)
                 w.write(m)
