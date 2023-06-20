@@ -211,7 +211,7 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
                          f"{os.path.splitext(in_fname)[0]}.smi file\n")
 
 
-if __name__ == '__main__':
+def entry_point():
     parser = create_argparser()
     args = parser.parse_args()
 
@@ -236,3 +236,7 @@ if __name__ == '__main__':
               ncpu=args.ncpu,
               seed=args.seed,
               verbose=args.verbose)
+
+
+if __name__ == '__main__':
+    entry_point()
