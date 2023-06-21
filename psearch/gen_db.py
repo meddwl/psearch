@@ -55,33 +55,33 @@ def create_argparser():
 def check_dupl_input(fname):
     n = 0
     box_mols = []
+    box_mol_ids = []
     for mol, mol_name in read_input(fname):
-        if mol in list(zip(*box_mols))[0]:
+        if Chem.MolToSmiles(mol) in box_mols:
             n += 1
             sys.stdout.write(
                 f'WARNING! The molecule with name {str(mol_name)} meets the second time in the input file. '
                 f'This molecule will be omitted\n')
-        elif mol_name in list(zip(*box_mols))[1]:
+            yield "duplicate", mol_name, True
+
+        elif mol_name in box_mol_ids:
             n += 1
             suffix = 1
             # if there are more than two molecules have the same name
-            while mol_name in list(zip(*box_mols))[1]:
+            while mol_name in box_mol_ids:
                 sys.stdout.write(
                     f'WARNING! The molecule ID {str(mol_name)} meets the second time for the distinct molecule SMILES. '
-                    f'New molecule ID will be given to this molecule - {str(mol_name)}#{str(suffix)}\n')
-                mol_name = f"{str(mol_name)}#{str(suffix)}"
+                    f'New molecule ID will be given to this molecule - {str(mol_name.split("#")[0])}#{str(suffix)}\n')
+                mol_name = f"{str(mol_name.split('#')[0])}#{str(suffix)}"
                 suffix += 1
-            mol.SetProp("_Name", mol_name)
-            box_mols.append((mol, mol_name))
+            box_mols.append(Chem.MolToSmiles(mol))
+            box_mol_ids.append(mol_name)
+            yield mol, mol_name, True
+
         else:
-            mol.SetProp("_Name", mol_name)
-            box_mols.append((mol, mol_name))
-    return list(zip(*box_mols))[0], n
-
-
-def get_mol(molobj):
-    for mol in molobj:
-        yield mol
+            box_mols.append(Chem.MolToSmiles(mol))
+            box_mol_ids.append(mol_name)
+            yield mol, mol_name, False
 
 
 def gen_stereo(mol, num_isomers):
@@ -139,19 +139,21 @@ def remove_confs(mol, energy, rms):
         conf.SetId(i)
 
 
-def gen_data(mol, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
+def gen_data(mol_cid, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
     mol_dict, ph_dict, fp_dict = dict(), dict(), dict()
-
+    mol, mol_name, flag = mol_cid
+    if mol == 'duplicate':
+        return mol_cid
     isomers = gen_stereo(mol, nstereo)
     for i, mol in enumerate(isomers):
         mol = gen_conf(mol, nconf, seed)
-        remove_confs(mol, energy, rms)
+        remove_confs(mol, energy, rms) # what if return None?
 
         phs = utils.load_multi_conf_mol(mol, smarts_features=pharm_def, bin_step=bin_step)
         mol_dict[i] = mol
         ph_dict[i] = [ph.get_feature_coords() for ph in phs]
         fp_dict[i] = [ph.get_fp() for ph in phs]
-    return mol.GetProp("_Name"), mol_dict, ph_dict, fp_dict
+    return Chem.MolToSmiles(mol), mol_name, flag, mol_dict, ph_dict, fp_dict
 
 
 def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, pharm_def, seed, verbose):
@@ -166,15 +168,19 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
     else:
         raise Exception("Wrong output file format. Can be only DAT.\n")
 
-    input_molobj, n = check_dupl_input(in_fname)
-
+    mol_cid = []
     nprocess = min(cpu_count(), max(ncpu, 1))
     p = Pool(nprocess)
     try:
         for i, data in enumerate(
-                p.imap_unordered(partial(gen_data, nconf, nstereo, energy, rms, seed, bin_step, pharm_def), get_mol(input_molobj),
+                p.imap_unordered(partial(gen_data, nconf=nconf, nstereo=nstereo, energy=energy, rms=rms, seed=seed,
+                                         bin_step=bin_step, pharm_def=pharm_def), check_dupl_input(in_fname),
                                  chunksize=1), 1):
-            mol_name, mol_dict, ph_dict, fp_dict = data
+            if data[0] == 'duplicate':
+                mol_cid.append(data)
+                continue
+            smi, mol_name, flag, mol_dict, ph_dict, fp_dict = data
+            mol_cid.append((smi, mol_name, flag))
             db.write_mol(mol_name, mol_dict)
             db.write_pharm(mol_name, ph_dict)
             db.write_fp(mol_name, fp_dict)
@@ -184,31 +190,25 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
                     now = datetime.now()
                     date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
                     sys.stdout.write(f"{i} number of molecules were processed. {date_time} \n",)
-
     finally:
         p.close()
 
     # create new smi file if the input file has bad molecule structure(-s)
-    if n > 0:
-        if input_molobj[0].GetProp("Activity"):
-            data = [(Chem.MolToSmiles(mol), mol.GetProp("_Name"), mol.GetProp("Activity")) for mol in input_molobj]
-            columns = ['smi', 'mol_id', 'activity']
-        else:
-            data = [(Chem.MolToSmiles(mol), mol.GetProp("_Name")) for mol in input_molobj]
-            columns = ['smi', 'mol_id']
+    flags = [x[2] for x in mol_cid]
+    if sum(flags) > 0:
+        sys.stdout.write(
+            f"\nWARNING! {str(sum(flags))} molecules were omitted and/or renamed comparing with the original input file.\n")
 
-        suffix = 1
-        new_in_fname = os.path.join(os.path.dirname(in_fname), os.path.basename(in_fname) + f".{str(suffix)}#")
+        suffix = 0
+        new_in_fname = f"{os.path.splitext(in_fname)[0]}-updated.smi"
         while os.path.exists(new_in_fname):
-            new_in_fname = os.path.join(os.path.dirname(in_fname), os.path.basename(in_fname) + f".{str(suffix)}#")
+            new_in_fname = f"{os.path.splitext(in_fname)[0]}-updated{str(suffix)}.smi"
             suffix += 1
-        os.rename(in_fname, new_in_fname)
-        df = pd.DataFrame(data=data, columns=columns)
-        df.to_csv(os.path.splitext(in_fname)[0] + '.smi', sep='\t', index=None)
-        sys.stdout.write(f"\nWARNING! {n} molecules were omitted or renamed comparing with the original input file."
-                         f"\nThe original input file will be saved with a new name {os.path.basename(new_in_fname)}."
-                         f"\nThe molecules corresponding to the generated database are stored in "
-                         f"{os.path.splitext(in_fname)[0]}.smi file\n")
+        df = pd.DataFrame(data=mol_cid, columns=['smi', 'mol_id'])
+        df.to_csv(new_in_fname, sep='\t', index=None)
+
+        sys.stdout.write(
+            f"The molecules corresponding to the generated database are stored in {new_in_fname} file\n")
 
 
 def entry_point():
