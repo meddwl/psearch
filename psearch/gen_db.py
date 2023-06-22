@@ -54,16 +54,17 @@ def create_argparser():
 
 def check_dupl_input(fname):
     n = 0
-    box_mols = []
-    box_mol_ids = []
+    box_mols, box_smi, box_mol_ids, box_flags = [], [], [], []
     for mol, mol_name in read_input(fname):
-        if Chem.MolToSmiles(mol) in box_mols:
+        if Chem.MolToSmiles(mol) in box_smi:
             n += 1
             sys.stdout.write(
                 f'WARNING! The molecule with name {str(mol_name)} meets the second time in the input file. '
                 f'This molecule will be omitted\n')
-            yield "duplicate", mol_name, True
-
+            box_mols.append("duplicate")
+            box_smi.append("duplicate")
+            box_mol_ids.append(mol_name)
+            box_flags.append(True)
         elif mol_name in box_mol_ids:
             n += 1
             suffix = 1
@@ -74,14 +75,24 @@ def check_dupl_input(fname):
                     f'New molecule ID will be given to this molecule - {str(mol_name.split("#")[0])}#{str(suffix)}\n')
                 mol_name = f"{str(mol_name.split('#')[0])}#{str(suffix)}"
                 suffix += 1
-            box_mols.append(Chem.MolToSmiles(mol))
+            box_mols.append(mol)
+            box_smi.append(Chem.MolToSmiles(mol))
             box_mol_ids.append(mol_name)
-            yield mol, mol_name, True
-
+            box_flags.append(True)
         else:
-            box_mols.append(Chem.MolToSmiles(mol))
+            box_mols.append(mol)
+            box_smi.append(Chem.MolToSmiles(mol))
             box_mol_ids.append(mol_name)
-            yield mol, mol_name, False
+            box_flags.append(False)
+
+    return box_mols, box_smi, box_mol_ids, box_flags
+
+
+def get_mol(mols):
+    for mol, mol_name in mols:
+        if mol == 'duplicate':
+            continue
+        yield mol, mol_name
 
 
 def gen_stereo(mol, num_isomers):
@@ -141,19 +152,18 @@ def remove_confs(mol, energy, rms):
 
 def gen_data(mol_cid, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
     mol_dict, ph_dict, fp_dict = dict(), dict(), dict()
-    mol, mol_name, flag = mol_cid
-    if mol == 'duplicate':
-        return mol_cid
+    mol, mol_name = mol_cid
+
     isomers = gen_stereo(mol, nstereo)
     for i, mol in enumerate(isomers):
         mol = gen_conf(mol, nconf, seed)
-        remove_confs(mol, energy, rms) # what if return None?
+        remove_confs(mol, energy, rms) # what if it returns None?
 
         phs = utils.load_multi_conf_mol(mol, smarts_features=pharm_def, bin_step=bin_step)
         mol_dict[i] = mol
         ph_dict[i] = [ph.get_feature_coords() for ph in phs]
         fp_dict[i] = [ph.get_fp() for ph in phs]
-    return Chem.MolToSmiles(mol), mol_name, flag, mol_dict, ph_dict, fp_dict
+    return mol_name, mol_dict, ph_dict, fp_dict
 
 
 def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, pharm_def, seed, verbose):
@@ -168,19 +178,16 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
     else:
         raise Exception("Wrong output file format. Can be only DAT.\n")
 
-    mol_cid = []
+    mols, smis, cids, flags = check_dupl_input(in_fname)
     nprocess = min(cpu_count(), max(ncpu, 1))
     p = Pool(nprocess)
     try:
         for i, data in enumerate(
                 p.imap_unordered(partial(gen_data, nconf=nconf, nstereo=nstereo, energy=energy, rms=rms, seed=seed,
-                                         bin_step=bin_step, pharm_def=pharm_def), check_dupl_input(in_fname),
-                                 chunksize=1), 1):
-            if data[0] == 'duplicate':
-                mol_cid.append(data)
+                                         bin_step=bin_step, pharm_def=pharm_def), get_mol(zip(mols, cids)), chunksize=1), 1):
+            if not data:
                 continue
-            smi, mol_name, flag, mol_dict, ph_dict, fp_dict = data
-            mol_cid.append((smi, mol_name, flag))
+            mol_name, mol_dict, ph_dict, fp_dict = data
             db.write_mol(mol_name, mol_dict)
             db.write_pharm(mol_name, ph_dict)
             db.write_fp(mol_name, fp_dict)
@@ -190,25 +197,29 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
                     now = datetime.now()
                     date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
                     sys.stdout.write(f"{i} number of molecules were processed. {date_time} \n",)
+
+        # create new smi file if the input file has bad molecule structure(-s)
+        if sum(flags) > 0:
+            sys.stdout.write(
+                f"\nWARNING! {str(sum(flags))} molecules were omitted and/or renamed "
+                f"comparing with the original input file.\n")
+
+            suffix = 2
+            new_in_fname = f"{os.path.splitext(in_fname)[0]}-updated.smi"
+            while os.path.exists(new_in_fname):
+                new_in_fname = f"{os.path.splitext(in_fname)[0]}-updated{str(suffix)}.smi"
+                suffix += 1
+            df_cid = pd.DataFrame(data={'smi': smis, 'cid': cids, 'if_changed': flags})
+            df_cid.to_csv(new_in_fname, sep='\t', index=None)
+
+            sys.stdout.write(
+                f"The molecules corresponding to the generated database are stored in {new_in_fname} file\n\n")
     finally:
+        if verbose:
+            now = datetime.now()
+            date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+            sys.stdout.write(f"Database is created. {date_time}\n")
         p.close()
-
-    # create new smi file if the input file has bad molecule structure(-s)
-    flags = [x[2] for x in mol_cid]
-    if sum(flags) > 0:
-        sys.stdout.write(
-            f"\nWARNING! {str(sum(flags))} molecules were omitted and/or renamed comparing with the original input file.\n")
-
-        suffix = 0
-        new_in_fname = f"{os.path.splitext(in_fname)[0]}-updated.smi"
-        while os.path.exists(new_in_fname):
-            new_in_fname = f"{os.path.splitext(in_fname)[0]}-updated{str(suffix)}.smi"
-            suffix += 1
-        df = pd.DataFrame(data=mol_cid, columns=['smi', 'mol_id'])
-        df.to_csv(new_in_fname, sep='\t', index=None)
-
-        sys.stdout.write(
-            f"The molecules corresponding to the generated database are stored in {new_in_fname} file\n")
 
 
 def entry_point():
