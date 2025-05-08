@@ -23,10 +23,10 @@ from psearch.scripts.read_input import read_input
 from psearch.database import DB
 
 
-def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
+def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step, pharm_def, is3d):
     box_mol_names = set()
     box_mols = set()
-    for mol, mol_name in read_input(fname):
+    for mol, mol_name in read_input(fname, sdf_confs=is3d):
         if mol_name in box_mol_names:
             sys.stderr.write(f'\nThe molecule name {mol_name} meets the second time and will be omitted\n')
         elif mol in box_mols:
@@ -34,7 +34,7 @@ def prep_input(fname, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
         else:
             box_mol_names.add(mol_name)
             box_mols.add(mol)
-        yield mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_def
+        yield mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_def, is3d
 
 
 def map_gen_data(args):
@@ -96,13 +96,19 @@ def remove_confs(mol, energy, rms):
         conf.SetId(i)
 
 
-def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_def):
+def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_def, is3d):
     mol_dict, ph_dict, fp_dict = dict(), dict(), dict()
 
-    isomers = gen_stereo(mol, nstereo)
+    if is3d:
+        isomers = [mol]
+    else:
+        isomers = gen_stereo(mol, nstereo)
+
     for i, mol in enumerate(isomers):
-        mol = gen_conf(mol, nconf, seed)
-        remove_confs(mol, energy, rms)
+
+        if not is3d:
+            mol = gen_conf(mol, nconf, seed)
+            remove_confs(mol, energy, rms)
 
         phs = utils.load_multi_conf_mol(mol, smarts_features=pharm_def, bin_step=bin_step)
         mol_dict[i] = mol
@@ -111,7 +117,7 @@ def gen_data(mol, mol_name, nconf, nstereo, energy, rms, seed, bin_step, pharm_d
     return mol_name, mol_dict, ph_dict, fp_dict
 
 
-def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, pharm_def, seed, verbose):
+def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, pharm_def, is3d, seed, verbose):
     if verbose:
         sys.stderr.write('Database creation started\n')
 
@@ -139,7 +145,7 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
     try:
         for i, (mol_name, mol_dict, ph_dict, fp_dict) in enumerate(
                 p.imap_unordered(map_gen_data, prep_input(in_fname, nconf, nstereo, energy, rms, seed, bin_step,
-                                                          pharm_def), chunksize=1), 1):
+                                                          pharm_def, is3d), chunksize=1), 1):
             if output_file_type == 'shelve':
                 db.write_mol(mol_name, mol_dict)
                 db.write_pharm(mol_name, ph_dict)
@@ -197,10 +203,13 @@ def entry_point():
     parser = argparse.ArgumentParser(description='Generate databased using RDKit.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--in_fname', metavar='FILENAME', required=True, type=str,
-                        help='input file of 2D SDF or SMILES format (tab-separated).')
+                        help='input file of 2D SDF or SMILES format (tab-separated). If 3D SDF file is supplied, '
+                             'the supplied conformers will be used "as is" without further filtering.')
     parser.add_argument('-o', '--dbname', metavar='FILENAME.dat', required=True, type=str,
                         help='output database file name. Should have DAT extension. Database will consist of two files '
                              '.dat and .dir. If there is a database with the same name, then the tool will stop.')
+    parser.add_argument('-3', '--is3d', action='store_true', default=False,
+                        help='set if 3D SDF file with pre-generated conformers was supplied.')
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=int, default=1,
                         help='binning step for pharmacophores creation.')
     parser.add_argument('-s', '--nstereo', metavar='INTEGER', type=int, default=5,
@@ -243,6 +252,7 @@ def entry_point():
               rms=args.rms,
               bin_step=args.bin_step,
               pharm_def=args.pharm,
+              is3d=args.is3d,
               ncpu=args.ncpu,
               seed=args.seed,
               verbose=args.verbose)
