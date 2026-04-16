@@ -14,6 +14,14 @@ from pmapper.pharmacophore import Pharmacophore as P
 
 
 def max_edge(model):
+    """Return the length (Å) of the longest pairwise distance between any two features in a pharmacophore model.
+
+    Args:
+        model: Path to a .xyz pharmacophore model file.
+
+    Returns:
+        Float — maximum inter-feature Euclidean distance in Å.
+    """
     p = P()
     p.load_from_xyz(model)
     coords = p.get_feature_coords()
@@ -27,22 +35,36 @@ def max_edge(model):
 
 
 def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
+    """Compute external validation statistics for a single pharmacophore model.
+
+    Compares virtual screening hits against the external test set (compounds excluded from
+    the training set) to compute TP, FP, precision, recall, F-scores, balanced accuracy,
+    and enrichment factor.
+
+    Args:
+        path_mols: Path to the full tab-separated SMILES file (columns: SMILES, mol_id, activity).
+        path_ts: Path to the training set .smi file for this model's cluster.
+        path_pma: Path to the .xyz pharmacophore model file.
+        pp_screen: Path to the screen_db hit-list .txt file for this model.
+        model_id: Model identifier string (used in the returned results tuple).
+
+    Returns:
+        Tuple of (target_id, model_id, TP, FP, P, N, precision, recall, FPR,
+                  F1, F2, F05, BA, EF, uniq_features, max_dist, feature_labels).
+    """
     terget_id = os.path.splitext(os.path.basename(path_mols))[0]
+    p = P()
+    p.load_from_xyz(path_pma)
+    feature_coords = p.get_feature_coords()
+    labels = ''.join(label for label, xyz in feature_coords)
+    num_uniq_features = len(set(xyz for label, xyz in feature_coords))
     medge = max_edge(path_pma)
-    num_uniq_features = set()
-    labels = ''
-    with open(path_pma) as f:
-        for line in f.readlines()[2:]:
-            label, *coords = line.strip().split()
-            labels += label
-            num_uniq_features.add(tuple(map(float, coords)))
-    num_uniq_features = len(num_uniq_features)
 
     ts_act_mol = []
     ts_inact_mol = []
     for ii in open(path_ts).readlines():
         line = ii.strip().split()
-        if line[-1] == 1:
+        if line[-1] == '1':
             ts_act_mol.append(line[1])
         else:
             ts_inact_mol.append(line[1])
@@ -98,6 +120,18 @@ def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
 
 
 def calc_stat(path_mols, path_ts, pp_models, path_screen, out_external):
+    """Compute external validation statistics for all pharmacophore models in a directory.
+
+    Iterates over .pma/.xyz files in `pp_models`, calls get_external_stat for each,
+    and writes a sorted TSV summary to `out_external`.
+
+    Args:
+        path_mols: Path to the full tab-separated SMILES file (columns: SMILES, mol_id, activity).
+        path_ts: Path to the directory containing training set .smi files.
+        pp_models: Path to the directory containing pharmacophore model files (.pma or .xyz).
+        path_screen: Path to the directory containing screen_db hit-list .txt files.
+        out_external: Path to the output TSV file where validation statistics will be written.
+    """
     start_time = time.time()
     os.makedirs(os.path.dirname(out_external), exist_ok=True)
     df_result = pd.DataFrame(columns=['target_id', 'model_id', 'TP', 'FP', 'P', 'N', 'precision', 'recall', 'FPR',
@@ -122,6 +156,7 @@ def calc_stat(path_mols, path_ts, pp_models, path_screen, out_external):
 
 
 def create_parser():
+    """Build the CLI argument parser for external_statistics."""
     parser = argparse.ArgumentParser(description='External statistics calculation. '
                                                  'If the metric cannot be calculated (dividing by zero), '
                                                  'NaN will be printed',
@@ -131,11 +166,10 @@ def create_parser():
                              '`compound id`, `activity` columns. '
                              'The third column should contain a word 1 or 0. 1 is for actives, 0 is for inactive ones.')
     parser.add_argument('-t', '--trainset', metavar='DIRNAME', required=True,
-                        help='A path to the folder where will be saved a training set.'
-                             'If omitted, the path will be generated automatically relative to project directory.')
+                        help='Path to the folder containing the pre-computed training set files '
+                             '(output of select_training_set).')
     parser.add_argument('-m', '--models', metavar='DIRNAME', required=True,
-                        help='A path to a folder where will be saved the created pharmacophore models.'
-                             'If omitted, the path will be generated automatically relative to project directory.')
+                        help='Path to the folder containing the pharmacophore model files (.pma or .xyz).')
     parser.add_argument('-s', '--screen', metavar='DIRNAME', required=True,
                         help='path to the folder with the virtual screening results')
     parser.add_argument('-o', '--output', metavar='FILENAME', default=None,
@@ -144,7 +178,8 @@ def create_parser():
     return parser
 
 
-if __name__ == '__main__':
+def entry_point():
+    """CLI entry point for external_statistics: parse arguments and call calc_stat."""
     parser = create_parser()
     args = parser.parse_args()
     calc_stat(path_mols=os.path.abspath(args.molecules),
@@ -152,3 +187,7 @@ if __name__ == '__main__':
               pp_models=os.path.abspath(args.models),
               path_screen=os.path.abspath(args.screen),
               out_external=os.path.abspath(args.output) if args.output else os.path.join(os.path.dirname(args.molecules), 'result.txt'))
+
+
+if __name__ == '__main__':
+    entry_point()
