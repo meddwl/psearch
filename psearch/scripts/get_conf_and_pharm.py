@@ -13,10 +13,24 @@ import argparse
 
 
 class RawTextArgumentDefaultsHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
+    """Combined argparse formatter that preserves raw text line breaks and appends default values to help strings."""
     pass
 
 
 def extractor(db, mol_ids, stereo_ids, conf_ids):
+    """Retrieve specific conformers and their pharmacophore features from the database.
+
+    Args:
+        db: Open DB instance.
+        mol_ids: List of compound identifier strings.
+        stereo_ids: List of stereo_id integers (one per entry in mol_ids).
+        conf_ids: List of conformer_id integers (one per entry in mol_ids).
+
+    Yields:
+        Tuples of (rdkit.Mol, conformer_name, conf_id, pharm_string) where
+        conformer_name is '{mol_id}-s{stereo_id}-c{conf_id}' and pharm_string
+        is the pharmacophore features formatted for .xyz output.
+    """
     for mol, stereo, conf in zip(mol_ids, stereo_ids, conf_ids):
         cmp = db.get_mol(mol)[stereo]
         mname = f"{mol}-s{stereo}-c{conf}"
@@ -47,7 +61,7 @@ def main():
 
     db = DB(os.path.abspath(args.dbdir))
     for cmp, cmp_name, conf_id, pharm in extractor(db, args.mol_id, args.stereo_id, args.conf_id):
-        writer = Chem.PDBWriter(os.path.join(os.path.abspath(args.output), cmp_name + '.sdf'))
+        writer = Chem.SDWriter(os.path.join(os.path.abspath(args.output), cmp_name + '.sdf'))
         writer.write(cmp, confId=conf_id)
 
         with open(os.path.join(os.path.abspath(args.output), cmp_name), 'a') as f:
