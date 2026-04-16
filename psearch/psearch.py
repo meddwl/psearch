@@ -15,6 +15,7 @@ from psearch.scripts.select_training_set import trainingset_formation
 
 
 def create_parser():
+    """Build the CLI argument parser for the psearch pipeline."""
     parser = argparse.ArgumentParser(description='Ligand-based pharmacophore model building',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--project_dir', metavar='DIRNAME', type=str, default=None,
@@ -40,9 +41,8 @@ def create_parser():
                         help='An output text file where will be saved validation statistics. '
                              'If omitted, the path will be generated automatically relative to project directory.')
     parser.add_argument('-m', '--mode_train_set', nargs='+', type=int, default=[1, 2],
-                        help='Take numbers 1 or 2 or both to designate the strategy to create training sets. '
-                             '1 - a single training set will be created from centroids of individual clusters, '
-                             '2 - multiple training sets will be created, one per cluster.')
+                        help='Training-set strategy: 1 = one set from cluster centroids; '
+                             '2 = one set per cluster; supply both (e.g. -m 1 2) to run both strategies.')
     parser.add_argument('--fcfp4', action='store_true', default=False,
                         help='If set FCFP4 fingerprints will be used for compound clustering, '
                              'otherwise pharmacophore fingerprints will be used.')
@@ -51,30 +51,36 @@ def create_parser():
     parser.add_argument('-tol', '--tolerance', metavar='NUMERIC', type=float, default=0,
                         help='tolerance used for calculation of a stereoconfiguration sign.')
     parser.add_argument('-b', '--bin_step', metavar='NUMERIC', type=float, default=1,
-                        help='binning step.')
+                        help='Bin width (Å) for discretising pharmacophore feature coordinates. '
+                             'Must match the value used when building the database with gen_db.')
     parser.add_argument('-l', '--lower', metavar='INTEGER', type=int, default=3,
-                        help='starting from this number of features, pharmacophore models will be created')
+                        help='Minimum number of pharmacophore features to include when generating models '
+                             '(e.g. 3). Models with fewer features are not created.')
     parser.add_argument('-f', '--save_model_complexity', metavar='INTEGER', type=int, default=None,
-                        help='All pharmacophore models will be saved starting from this number of features.'
-                             'If omitted will be saved only the most complex pharmacophore models')
+                        help='Minimum feature count at which models are written to disk. '
+                             'Models below this threshold are generated internally but not saved. '
+                             'If omitted, only the most complex models are saved.')
     parser.add_argument('-u', '--upper', metavar='INTEGER', type=int, default=None,
-                        help='limit the upper number of features in generated pharmacophores. '
-                             'If omitted pharmacophores of maximum complexity will be generated.')
+                        help='Maximum number of pharmacophore features per model. '
+                             'If omitted, models up to the maximum possible complexity are generated.')
     parser.add_argument('-c', '--ncpu', metavar='INTEGER', type=int, default=1,
                         help='number of cpus to use for calculation.')
     return parser
 
 
 def creating_pharmacophore_mp(items):
+    """Unpack an items tuple and delegate to creating_pharmacophore; used as the multiprocessing worker."""
     return creating_pharmacophore(*items)
 
 
 def get_items(in_db, list_ts, path_pma, upper, lower, save_model_complexity, bin_step, tolerance, save_stat):
+    """Yield argument tuples for each training set, for use with creating_pharmacophore_mp via a process pool."""
     for train_set in list_ts:
         yield in_db, train_set, path_pma, upper, lower, save_model_complexity, bin_step, tolerance, save_stat
 
 
 def creating_pharmacophore(in_db, train_set, path_pma, upper, lower, save_model_complexity, bin_step, tolerance, save_stat):
+    """Generate pharmacophore models from a single training set and save them to path_pma."""
     gen_pharm_models(in_db=in_db,
                      trainset=train_set,
                      out_pma=path_pma,
@@ -88,7 +94,31 @@ def creating_pharmacophore(in_db, train_set, path_pma, upper, lower, save_model_
 
 def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, path_clus_stat,
          mode_train_set, fcfp4, threshold, tolerance, lower, save_model_complexity, upper, bin_step, ncpu, save_stat):
+    """Run the full psearch workflow.
 
+    Steps: (1) cluster actives/inactives and form training sets, (2) generate
+    pharmacophore models from each training set in parallel, (3) screen the
+    database with the generated models, (4) compute external validation statistics.
+
+    Args:
+        in_mols: Path to the tab-separated SMILES file (columns: SMILES, mol_id, activity).
+        in_db: Path to the psearch database (.dat) built with gen_db.
+        path_ts: Directory where training set files will be written.
+        path_pma: Directory where pharmacophore model files (.xyz) will be written.
+        path_screen: Directory where virtual screening hit lists will be written.
+        path_external_stat: Path to the output external validation statistics file.
+        path_clus_stat: Path to the output clustering statistics file.
+        mode_train_set: List of strategies (1 and/or 2) — see create_parser.
+        fcfp4: If True, use FCFP4 fingerprints for clustering; otherwise use pharmacophore fps.
+        threshold: Butina clustering distance cutoff (Tanimoto dissimilarity).
+        tolerance: Stereocentre sign tolerance for pharmacophore generation.
+        lower: Minimum number of pharmacophore features to start model generation.
+        save_model_complexity: Minimum feature count at which models are saved; None saves only final.
+        upper: Maximum number of pharmacophore features; None for maximum complexity.
+        bin_step: Bin width (Å) for pharmacophore discretisation.
+        ncpu: Number of parallel worker processes.
+        save_stat: If True, save intermediate model generation statistics.
+    """
     # formation of a training set
     list_ts = trainingset_formation(input_mols=in_mols,
                                     path_ts=path_ts,
@@ -100,13 +130,13 @@ def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, pat
     if type(list_ts) == str:
         sys.exit(list_ts)
 
-    p = Pool(ncpu)
-    for _ in p.imap(creating_pharmacophore_mp, get_items(in_db=in_db, list_ts=list_ts, path_pma=path_pma,
-                                                         upper=upper, lower=lower,
-                                                         save_model_complexity=save_model_complexity,
-                                                         bin_step=bin_step, tolerance=tolerance, save_stat=save_stat)):
-        continue
-    p.close()
+    with Pool(ncpu) as p:
+        for _ in p.imap_unordered(creating_pharmacophore_mp, get_items(in_db=in_db, list_ts=list_ts, path_pma=path_pma,
+                                                                       upper=upper, lower=lower,
+                                                                       save_model_complexity=save_model_complexity,
+                                                                       bin_step=bin_step, tolerance=tolerance,
+                                                                       save_stat=save_stat)):
+            pass
 
     # validation of the created pharmacophore queries
     screen_db(db_fname=in_db,
@@ -123,6 +153,7 @@ def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, pat
 
 
 def entry_point():
+    """CLI entry point for psearch: parse arguments and call main."""
     parser = create_parser()
     args = parser.parse_args()
     project_dir = os.path.abspath(args.project_dir) if args.project_dir else os.path.dirname(os.path.abspath(args.molecules))
