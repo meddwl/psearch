@@ -10,6 +10,7 @@ from pmapper.pharmacophore import Pharmacophore as P
 
 
 def get_max_dist(p):
+    """Return the maximum pairwise Euclidean distance (Å) between any two features in pharmacophore p."""
     coords = p.get_feature_coords()
     dist = 0
     for a, b in combinations(coords, 2):
@@ -20,28 +21,40 @@ def get_max_dist(p):
 
 
 def get_num_features(p):
+    """Return the total number of pharmacophore features in p (including duplicate coordinates)."""
     coords = p.get_feature_coords()
     return len(coords)
 
 
 def get_num_distinct_features(p):
+    """Return the number of features with unique 3D coordinates in pharmacophore p."""
     coords = [i[1] for i in p.get_feature_coords()]
     return len(set(coords))
 
 
 def get_num_polarfeature(p):
+    """Return the count of polar features (H-bond acceptors A, donors D, positive P, negative N) in p."""
     nf = p.get_features_count()
     n = nf['A'] + nf['D'] + nf['P'] + nf['N']
     return n
 
 
 def get_labels(p):
+    """Return a string of concatenated feature-type labels for pharmacophore p (e.g. 'ADHH')."""
     coords = p.get_feature_coords()
     l = ''.join([i[0] for i in coords])
     return l
 
 
 def calc_pharm_graph_desc(p):
+    """Compute a set of graph-level descriptors for pharmacophore p.
+
+    Returns:
+        Tuple of (max_dist, nf, nf_dist, nf_polar, labels) where max_dist is the
+        maximum inter-feature distance (Å), nf is total feature count, nf_dist is
+        distinct-coordinate feature count, nf_polar is polar feature count, and
+        labels is the concatenated feature-type string.
+    """
     labels = get_labels(p)
     nf_dist = get_num_distinct_features(p)
     nf_polar = get_num_polarfeature(p)
@@ -51,6 +64,7 @@ def calc_pharm_graph_desc(p):
 
 
 def create_parser():
+    """Build the CLI argument parser for get_pharm_props."""
     parser = argparse.ArgumentParser(description='Get information about a pharmacophore graphs:\n'
                                                  'pharm_id - pharmacophore id;\t'
                                                  'max_dist - maximum distance between features in pharmacophore graph;\n'
@@ -72,6 +86,7 @@ def create_parser():
 
 
 def entry_point():
+    """CLI entry point for get_pharm_props: parse arguments and compute pharmacophore descriptors."""
     parser = create_parser()
     args = parser.parse_args()
 
@@ -82,20 +97,21 @@ def entry_point():
     else:
         list_models = [args.models]
 
-    w = open(output, 'w')
-    w.write('pharm_id\tmax_dist\tnf\tnf_dist\tnf_polar\tlabels\n')
-    for pp_model in list_models:
-        p = P()
-        if pp_model.endswith('.xyz'):
-            p.load_from_xyz(pp_model)
-        elif pp_model.endswith('.pma'):
-            p.load_from_pma(pp_model)
-        else:
-            sys.stderr.write(f"This pharmacophore format is not supported. Input file is {pp_model}")
+    with open(output, 'w') as w:
+        w.write('pharm_id\tmax_dist\tnf\tnf_dist\tnf_polar\tlabels\n')
+        for pp_model in list_models:
+            p = P()
+            if pp_model.endswith('.xyz'):
+                p.load_from_xyz(pp_model)
+            elif pp_model.endswith('.pma'):
+                p.load_from_pma(pp_model)
+            else:
+                sys.stderr.write(f"This pharmacophore format is not supported. Input file is {pp_model}")
+                continue
 
-        res = calc_pharm_graph_desc(p)
-        if res:
-            w.write(os.path.basename(os.path.splitext(pp_model)[0]) + '\t' + '\t'.join(map(str, res)) + '\n')
+            res = calc_pharm_graph_desc(p)
+            if res:
+                w.write(os.path.basename(os.path.splitext(pp_model)[0]) + '\t' + '\t'.join(map(str, res)) + '\n')
 
 
 if __name__ == '__main__':
