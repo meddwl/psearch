@@ -27,10 +27,10 @@ There are two steps of pharmacophore model generation.
 1. Generation of a database with precomputed conformers and pharmacophores. 
 
 ```python
-gen_db -i cdk8.smi -o dbs/cdk8.dat -c 4 -v
+gen_db -i cdk8.smi -d dbs/cdk8.dat -c 4 -v
 ```
 `-i` - path to the input SMILES file  
-`-o` - path to database (should have extension .dat)  
+`-d` - path to database (should have extension .dat)  
 `-c` - number of CPUs to use  
 `-v` - print progress to STDERR  
 There are other arguments which one can tune. Invoke script with `-h` key to get full information.  
@@ -111,7 +111,7 @@ psearch ligand-based pharmacophore models which were cheated using data from ChE
 the psearch pharmacophore models can be found in the pharmacophores folder.
 
 ```python
-gen_db -i mols_for_profiling.smi -o dbs/mols_for_profiling.dat -c 4 -v
+gen_db -i mols_for_profiling.smi -d dbs/mols_for_profiling.dat -c 4 -v
 ```
 
 2. Virtual screening.
