@@ -23,6 +23,7 @@ Conformer = namedtuple('Conformer', ['stereo_id', 'conf_id', 'fp', 'pharmacophor
 
 
 def create_parser():
+    """Build the CLI argument parser for screen_db."""
     parser = argparse.ArgumentParser(description='Screen DB with compounds against pharmacophore queries.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--dbname', metavar='FILENAME.dat', type=str, required=True,
@@ -44,11 +45,10 @@ def create_parser():
                         help='minimum number of features with distinct coordinates in models. Models having less '
                              'number of features will be skipped. Default: all models will be screened.')
     parser.add_argument('-z', '--output_sdf', action='store_true', default=False,
-                        help='specify if sdf output with matched conformers is required. These files will be created '
-                             'in the place as text files.')
+                        help='Write an SDF file alongside each hit-list file containing the matching 3D conformers.')
     parser.add_argument('--conf', action='store_true', default=False,
-                        help='return all conformers matches as separate hits in a hit list. Required to calculate the '
-                             'score by the conformer coverage approach (CCA).')
+                        help='Report each matching conformer as a separate hit. '
+                             'Required for conformer-coverage-approach (CCA) scoring.')
     parser.add_argument('-c', '--ncpu', metavar='INTEGER', default=1, type=int,
                         help='number of cores to use. Default: 1.')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
@@ -56,8 +56,17 @@ def create_parser():
     return parser
 
 
-def load_confs(mol_name, db):
-    bin_step = db.get_bin_step()
+def load_confs(mol_name, db, bin_step):
+    """Load all conformers for a compound from the database and reconstruct Pharmacophore objects.
+
+    Args:
+        mol_name: Compound identifier string.
+        db: Open DB instance.
+        bin_step: Bin width (Å) used to build the Pharmacophore objects; must match the database.
+
+    Returns:
+        List of Conformer namedtuples (stereo_id, conf_id, fp, pharmacophore).
+    """
     fp_dict = db.get_fp(mol_name)
     ph_dict = db.get_pharm(mol_name)
     res = []
@@ -73,7 +82,21 @@ def load_confs(mol_name, db):
 
 
 def read_models(queries, output, bin_step, min_features):
+    """Parse pharmacophore model files and prepare them for screening.
 
+    Accepts either a list of .pma/.xyz files or a list of directories. Models with
+    fewer than `min_features` distinct-coordinate features are skipped.
+
+    Args:
+        queries: List of file paths or directory paths containing .pma/.xyz model files.
+        output: Output path (file or directory) used to derive per-model output filenames.
+        bin_step: Bin width (Å) used to update pharmacophore fingerprints.
+        min_features: Skip models with fewer distinct-coordinate features than this value.
+                      None screens all models.
+
+    Returns:
+        List of Model namedtuples (name, fp, pharmacophore, output_filename).
+    """
     if all(os.path.isdir(item) for item in queries):
         input_fnames = []
         output_fnames = []
@@ -106,15 +129,33 @@ def read_models(queries, output, bin_step, min_features):
     return res
 
 
-def screen(mol_name, db, models, output_sdf, match_first_conf):
+def screen(mol_name, db, models, output_sdf, match_first_conf, bin_step):
+    """Screen all conformers of a compound against a list of pharmacophore models.
 
+    For each model, iterates over conformers and uses a fingerprint pre-filter before
+    full pharmacophore fitting. Returns only matching (model, conformer) combinations.
+
+    Args:
+        mol_name: Compound identifier string.
+        db: Open DB instance.
+        models: List of Model namedtuples from read_models.
+        output_sdf: If True, also retrieve the transformation matrix and RMSD for SDF output.
+        match_first_conf: If True, stop after the first matching conformer per model
+                          (faster; use False for CCA scoring).
+        bin_step: Bin width (Å) used to load conformers; must match the database.
+
+    Returns:
+        List of tuples (mol_name, stereo_id, conf_id, output_filename) or
+        (mol_name, stereo_id, conf_id, output_filename, matrix, rms) when output_sdf is True.
+    """
     def compare_fp(query_fp, fp):
+        """Return True if query_fp is a subset of fp (all query bits are set in the molecule fp)."""
         return (query_fp & fp) == query_fp
 
     get_transform_matrix = output_sdf
     get_rms = output_sdf
 
-    confs = load_confs(mol_name, db)
+    confs = load_confs(mol_name, db, bin_step)
 
     output = []
     for model in models:
@@ -133,32 +174,74 @@ def screen(mol_name, db, models, output_sdf, match_first_conf):
 
 
 def save_results(results, output_sdf, db):
+    """Write screening hits to text hit-list files and, optionally, to SDF files.
+
+    Hit-list files contain one tab-separated line per hit: mol_name, stereo_id, conf_id.
+    SDF files (written when output_sdf is True) contain the matching 3D conformer
+    superimposed onto the pharmacophore model, with the RMSD stored as an SD property.
+
+    Args:
+        results: List of tuples returned by screen — either 4-element (text only) or
+                 6-element (text + matrix + rms) when output_sdf is True.
+        output_sdf: If True, also write SDF files alongside the hit-list files.
+        db: Open DB instance (needed to retrieve 3D coordinates for SDF output).
+    """
+    # Group by output filename to batch writes and minimise open/close calls
+    created_dirs = set()
+    by_fname = {}
     for items in results:
         mol_name, stereo_id, conf_id, out_fname = items[:4]
-        if not os.path.exists(os.path.dirname(out_fname)):
-            os.makedirs(os.path.dirname(out_fname))
+        by_fname.setdefault(out_fname, []).append(items)
+
+    for out_fname, items_list in by_fname.items():
+        out_dir = os.path.dirname(out_fname)
+        if out_dir and out_dir not in created_dirs:
+            os.makedirs(out_dir, exist_ok=True)
+            created_dirs.add(out_dir)
         with open(out_fname, 'at') as f:
-            f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
+            for items in items_list:
+                mol_name, stereo_id, conf_id = items[0], items[1], items[2]
+                f.write('\t'.join((mol_name, str(stereo_id), str(conf_id))) + '\n')
+
     if output_sdf:
+        sdf_by_fname = {}
         for mol_name, stereo_id, conf_id, out_fname, matrix, rms in results:
-            # print('!'*8, type(rms), rms)
-            m = db.get_mol(mol_name)[stereo_id]
-            AllChem.TransformMol(m, matrix, conf_id)
-            m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
-            m.SetProp("RMSD", str(round(rms, 4)))
+            sdf_by_fname.setdefault(out_fname, []).append((mol_name, stereo_id, conf_id, matrix, rms))
+        for out_fname, sdf_items in sdf_by_fname.items():
             with open(os.path.splitext(out_fname)[0] + '.sdf', 'a') as f:
                 w = Chem.SDWriter(f)
-                w.write(m)
+                for mol_name, stereo_id, conf_id, matrix, rms in sdf_items:
+                    m = db.get_mol(mol_name)[stereo_id]
+                    AllChem.TransformMol(m, matrix, conf_id)
+                    m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
+                    m.SetProp("RMSD", str(round(rms, 4)))
+                    w.write(m)
                 w.close()
 
 
 def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_features, ncpu, verbose):
+    """Orchestrate parallel pharmacophore virtual screening of a psearch database.
 
+    Reads all compound conformers from `db_fname`, screens them against `queries`,
+    and writes hit lists (and optionally SDF files) to `output`.
+
+    Args:
+        db_fname: Path to the psearch database (.dat file).
+        queries: List of .pma/.xyz file paths or directory paths containing model files.
+        output: Output file path (single model) or directory path (multiple models).
+        output_sdf: If True, write matched conformers to SDF files alongside hit lists.
+        match_first_conf: If True, stop after the first conformer match per model (faster).
+                          Set to False when all matching conformers are needed (e.g. CCA).
+        min_features: Skip models with fewer distinct-coordinate features. None screens all.
+        ncpu: Number of parallel worker processes.
+        verbose: If True, print progress to stderr every 10 molecules.
+    """
     start_time = time.time()
 
     if output.endswith('.txt') or output.endswith('.sdf'):
-        if not os.path.exists(os.path.dirname(output)):
-            os.makedirs(os.path.dirname(output), exist_ok=True)
+        output_dir = os.path.dirname(os.path.abspath(output))
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
     else:
         if not os.path.exists(output):
             os.makedirs(output, exist_ok=True)
@@ -179,7 +262,8 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 
     if ncpu == 1:
         for i, comp_name in enumerate(comp_names, 1):
-            res = screen(mol_name=comp_name, db=db, models=models, output_sdf=output_sdf, match_first_conf=match_first_conf)
+            res = screen(mol_name=comp_name, db=db, models=models, output_sdf=output_sdf,
+                         match_first_conf=match_first_conf, bin_step=bin_step)
             if res:
                 save_results(res, output_sdf, db)
             if verbose and i % 10 == 0:
@@ -187,16 +271,16 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
                 sys.stderr.write('\r{} molecules passed/conformers {}'.format(i, current_time))
                 sys.stderr.flush()
     else:
-        p = Pool(ncpu)
-        for i, res in enumerate(p.imap_unordered(partial(screen, db=db, models=models, output_sdf=output_sdf,
-                                            match_first_conf=match_first_conf), comp_names, chunksize=10), 1):
-            if res:
-                save_results(res, output_sdf, db)
-            if verbose and i % 10 == 0:
-                current_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
-                sys.stderr.write('\r{} molecules screened {}'.format(i, current_time))
-                sys.stderr.flush()
-        p.close()
+        with Pool(ncpu) as p:
+            for i, res in enumerate(p.imap_unordered(partial(screen, db=db, models=models, output_sdf=output_sdf,
+                                                match_first_conf=match_first_conf, bin_step=bin_step),
+                                                comp_names, chunksize=10), 1):
+                if res:
+                    save_results(res, output_sdf, db)
+                if verbose and i % 10 == 0:
+                    current_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+                    sys.stderr.write('\r{} molecules screened {}'.format(i, current_time))
+                    sys.stderr.flush()
 
     # remove output dir if it is empty
     # if os.path.exists(output) and os.path.isdir(output) and not os.listdir(output):
@@ -204,6 +288,7 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
 
 
 def entry_point():
+    """CLI entry point for screen_db: parse arguments and call screen_db."""
     parser = create_parser()
     args = parser.parse_args()
     screen_db(db_fname=args.dbname,
