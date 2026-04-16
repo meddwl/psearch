@@ -16,6 +16,7 @@ from io import BytesIO
 
 
 def __read_pkl(fname):
+    """Yield (rdkit.Mol, mol_name) tuples from a pickled molecule file."""
     with open(fname, 'rb') as f:
         while True:
             try:
@@ -25,6 +26,11 @@ def __read_pkl(fname):
 
 
 def __read_sdf(fname, input_format, id_field_name=None, sanitize=True, removeHs=True):
+    """Yield (rdkit.Mol, mol_name) tuples from an SDF or gzipped SDF file.
+
+    The molecule name is taken from the SD property specified by id_field_name, falling
+    back to the molecule title (_Name), or to the canonical SMILES if the title is empty.
+    """
     if input_format == 'sdf':
         suppl = Chem.SDMolSupplier(fname, sanitize=sanitize, removeHs=removeHs)
     elif input_format == 'sdf.gz':
@@ -44,6 +50,7 @@ def __read_sdf(fname, input_format, id_field_name=None, sanitize=True, removeHs=
 
 
 def __read_smiles(fname, sanitize=True):
+    """Yield (rdkit.Mol, mol_name) tuples from a tab-separated SMILES file (columns: SMILES, mol_id)."""
     with open(fname) as f:
         for line in f:
             tmp = line.strip().split()
@@ -57,6 +64,7 @@ def __read_smiles(fname, sanitize=True):
 
 
 def __read_stdin_smiles(sanitize=True):
+    """Yield (rdkit.Mol, mol_name) tuples by reading tab-separated SMILES from standard input."""
     line = sys.stdin.readline()
     while line:
         tmp = line.strip().split()
@@ -71,6 +79,7 @@ def __read_stdin_smiles(sanitize=True):
 
 
 def __read_stdin_sdf(sanitize=True, removeHs=True):
+    """Yield (rdkit.Mol, mol_name) tuples by reading an SDF stream from standard input."""
     molblock = ''
     line = sys.stdin.readline()
     while line:
@@ -106,14 +115,24 @@ def __read_stdin_sdf(sanitize=True, removeHs=True):
 
 
 def read_input(fname, input_format=None, id_field_name=None, sanitize=True, removeHs=True):
-    """
-    fname - is a file name, None if STDIN
-    input_format - is a format of input data, cannot be None for STDIN
-    id_field_name - name of the field containing molecule name, if None molecule title will be taken
+    """Yield (rdkit.Mol, mol_name) tuples from a molecule file or standard input.
+
+    Args:
+        fname: Path to the input file, or None to read from STDIN.
+        input_format: File format string ('sdf', 'sdf.gz', 'smi', 'smiles', or 'pkl').
+                      Inferred from the file extension when fname is not None.
+                      Must be provided explicitly when reading from STDIN.
+        id_field_name: Name of the SD property to use as the molecule identifier (SDF only).
+                       Falls back to the molecule title (_Name) if None.
+        sanitize: If True (default), RDKit sanitizes each molecule on read.
+        removeHs: If True (default), explicit hydrogens are removed on read (SDF only).
+
+    Yields:
+        Tuples of (rdkit.Mol, mol_name str).
     """
     if input_format is None:
         tmp = os.path.basename(fname).split('.')
-        if tmp == 'gz':
+        if tmp[-1] == 'gz':
             input_format = '.'.join(tmp[-2:])
         else:
             input_format = tmp[-1]
@@ -127,7 +146,7 @@ def read_input(fname, input_format=None, id_field_name=None, sanitize=True, remo
             raise Exception("Input STDIN format '%s' is not supported. It can be only sdf, smi." % input_format)
     elif input_format in ("sdf", "sdf.gz"):
         suppl = __read_sdf(os.path.abspath(fname), input_format, id_field_name, sanitize, removeHs)
-    elif input_format in ('smi'):
+    elif input_format in ('smi', 'smiles'):
         suppl = __read_smiles(os.path.abspath(fname), sanitize)
     elif input_format == 'pkl':
         suppl = __read_pkl(os.path.abspath(fname))
