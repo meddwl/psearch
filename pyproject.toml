@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "psearch"
+dynamic = ["version"]
+description = "PSearch: ligand-based pharmacophore modeling and screening"
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Alina Denzler", email = "alina.denzler5@gmail.com" },
+    { name = "Pavel Polishchuk", email = "pavel_polishchuk@ukr.net" },
+]
+requires-python = ">=3.9"
+dependencies = ["pmapper>=0.4.1"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+
+[project.urls]
+Homepage = "https://github.com/meddwl/psearch"
+
+[project.scripts]
+psearch       = "psearch.psearch:entry_point"
+gen_db        = "psearch.gen_db:entry_point"
+screen_db     = "psearch.screen_db:entry_point"
+prediction    = "psearch.prediction:entry_point"
+external_stat = "psearch.scripts.external_statistics:entry_point"
+
+[tool.setuptools.dynamic]
+version = {attr = "psearch.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+psearch = ["pharmacophores/**/*"]
