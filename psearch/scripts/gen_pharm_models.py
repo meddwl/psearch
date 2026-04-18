@@ -9,7 +9,8 @@ import sys
 import time
 import argparse
 import pandas as pd
-from psearch.database import DB
+# from psearch.database import DB
+from psearch.database import load_model
 from pmapper.pharmacophore import Pharmacophore
 
 
@@ -34,14 +35,14 @@ def _keep_best_models(df, df_sub, save_files, nfeatures):
     return df_sub
 
 
-def _gen_quadruplets(db, pp_train_set, lower, tol, bin_step):
+def _gen_quadruplets(db_path, pp_train_set, lower, tol, bin_step):
     """Enumerate all `lower`-feature pharmacophore sub-graphs for each conformer in the training set.
 
     Iterates over all stereoisomers and conformers of each training-set compound, builds
     Pharmacophore objects, and yields one record per sub-graph enumerated by pmapper.
 
     Args:
-        db: Open DB instance.
+        db_path: Path to the psearch SQLite database file.
         pp_train_set: Path to the training set .smi file (columns: SMILES, mol_id, activity).
         lower: Number of features to enumerate (typically 4 for quadruplets).
         tol: Stereocentre sign tolerance passed to pmapper's iterate_pharm.
@@ -53,9 +54,10 @@ def _gen_quadruplets(db, pp_train_set, lower, tol, bin_step):
     train_set_list = [name.strip().split() for name in open(pp_train_set).readlines()]
     for _, mol_name, activity in train_set_list:
         try:
-            dict_coords = db.get_pharm(mol_name)
+            # dict_coords = db.get_pharm(mol_name)
+            dict_coords = load_model(db_path, mol_name).pharm_dict
         except KeyError:
-            sys.exit(f"Unexpect molecule name. This {mol_name} is not in the input databased")
+            raise KeyError(f"Molecule '{mol_name}' not found in database")
         for isomer_id, list_coords in dict_coords.items():
             for conf_id, coord in enumerate(list_coords):
                 pharm = Pharmacophore(bin_step=bin_step, cached=True)
@@ -65,7 +67,7 @@ def _gen_quadruplets(db, pp_train_set, lower, tol, bin_step):
                         yield activity, mol_name, isomer_id, conf_id, hash, labels
 
 
-def _plus_one_feature(db, df_sub, bin_step):
+def _plus_one_feature(db_path, df_sub, bin_step):
     """Extend existing pharmacophore models by one additional feature.
 
     For each (mol, stereo, conformer) group in df_sub, retrieves the full pharmacophore
@@ -73,7 +75,7 @@ def _plus_one_feature(db, df_sub, bin_step):
     the current feature sets by exactly one additional feature.
 
     Args:
-        db: Open DB instance.
+        db_path: Path to the psearch SQLite database file.
         df_sub: DataFrame of current-complexity candidate models (from _keep_best_models).
         bin_step: Bin width (Å) for Pharmacophore objects.
 
@@ -88,7 +90,8 @@ def _plus_one_feature(db, df_sub, bin_step):
         label_ids = [tuple(map(int, lbls.split(','))) for lbls in df_group[1]['feature_ids'].tolist()]
         cache_key = (mol_name, isomer_id, conf_id)
         if cache_key not in pharm_cache:
-            pharm_cache[cache_key] = db.get_pharm(mol_name)[isomer_id][conf_id]
+            # pharm_cache[cache_key] = db.get_pharm(mol_name)[isomer_id][conf_id]
+            pharm_cache[cache_key] = load_model(db_path, mol_name).pharm_dict[isomer_id][conf_id]
         pharm = Pharmacophore(bin_step=bin_step, cached=True)
         pharm.load_from_feature_coords(pharm_cache[cache_key])
         if pharm:
@@ -186,7 +189,7 @@ def calc_internal_stat(df, positives, clust_strategy, designating):
     return df
 
 
-def save_models_xyz(db, db_name, df_sub, path_pma, bin_step, cluster_id, num_ids):
+def save_models_xyz(db_path, db_name, df_sub, path_pma, bin_step, cluster_id, num_ids):
     """Write pharmacophore models to .xyz files in path_pma.
 
     Each unique model hash in df_sub is written as a separate .xyz file using the
@@ -194,7 +197,7 @@ def save_models_xyz(db, db_name, df_sub, path_pma, bin_step, cluster_id, num_ids
     {db_name}.{cluster_id}_f{num_ids}_p{index}.xyz.
 
     Args:
-        db: Open DB instance.
+        db_path: Path to the psearch SQLite database file.
         db_name: Database name string used as a filename prefix.
         df_sub: DataFrame of selected models (output of _keep_best_models).
         path_pma: Directory where .xyz files will be written.
@@ -208,7 +211,8 @@ def save_models_xyz(db, db_name, df_sub, path_pma, bin_step, cluster_id, num_ids
     data = df_sub.drop_duplicates(subset=['hash']).values
     for num, (_, hash, count, mol_name, isomer_id, conf_id, feature_ids) in enumerate(data):
         pharm = Pharmacophore(bin_step=bin_step, cached=True)
-        pharm.load_from_feature_coords(db.get_pharm(mol_name)[isomer_id][conf_id])
+        # pharm.load_from_feature_coords(db.get_pharm(mol_name)[isomer_id][conf_id])
+        pharm.load_from_feature_coords(load_model(db_path, mol_name).pharm_dict[isomer_id][conf_id])
         pharm.save_to_xyz(os.path.join(path_pma, f"{db_name}.{cluster_id}_f{num_ids}_p{num}.xyz"),
                           tuple(map(int, feature_ids.split(','))))
     return len(data)
@@ -239,8 +243,8 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
     designating = ['1', '0']  # molecular activity
     clust_strategy = 1 if cluster_id == 'centroids' else 2
     positives = len([line for line in open(trainset).readlines() if line.strip().split()[2] == designating[0]])
-    db = DB(in_db, flag='r')
-    df_sub = gen_models(_gen_quadruplets(db, trainset, current_nfeatures, tolerance, bin_step))
+    # db = DB(in_db, flag='r')
+    df_sub = gen_models(_gen_quadruplets(in_db, trainset, current_nfeatures, tolerance, bin_step))
     df = calc_internal_stat(df_sub[['activity', 'hash', 'count']].drop_duplicates(subset=['activity', 'hash']),
                             positives, clust_strategy, designating)
     if df.empty:
@@ -255,14 +259,14 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
     df_sub = _keep_best_models(df, df_sub, save_statistics, current_nfeatures)
     if nfeatures is not None:
         if current_nfeatures >= nfeatures:
-            _ = save_models_xyz(db, db_name, df_sub[df_sub['activity'] == designating[0]],
+            _ = save_models_xyz(in_db, db_name, df_sub[df_sub['activity'] == designating[0]],
                                 out_pma, bin_step, cluster_id, current_nfeatures)
 
     while True:
         if current_nfeatures == upper:
             break
         current_nfeatures += 1
-        df_sub_2 = gen_models(_plus_one_feature(db, df_sub, bin_step))
+        df_sub_2 = gen_models(_plus_one_feature(in_db, df_sub, bin_step))
         df = calc_internal_stat(df_sub_2[['activity', 'hash', 'count']].drop_duplicates(subset=['activity', 'hash']),
                             positives, clust_strategy, designating)
         if df.empty:
@@ -271,10 +275,10 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
         df_sub = _keep_best_models(df, df_sub_2, save_statistics, current_nfeatures)
         if nfeatures is not None:
             if current_nfeatures >= nfeatures:
-                _ = save_models_xyz(db, db_name, df_sub[df_sub['activity'] == designating[0]],
+                _ = save_models_xyz(in_db, db_name, df_sub[df_sub['activity'] == designating[0]],
                                     out_pma, bin_step, cluster_id, current_nfeatures)
 
-    num_models = save_models_xyz(db, db_name, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id, current_nfeatures)
+    num_models = save_models_xyz(in_db, db_name, df_sub[df_sub['activity'] == designating[0]], out_pma, bin_step, cluster_id, current_nfeatures)
     sys.stderr.write(f'train set {cluster_id}: {num_models} models ({round(time.time()-time_start, 3)}s)\n')
     sys.stderr.flush()
 
