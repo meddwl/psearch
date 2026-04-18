@@ -13,7 +13,7 @@ from collections import defaultdict
 default_modelstat = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pharmacophores', 'pharmacophores_stat.csv')
 
 def calc_probability(df_vs, df_precision, target_id, scoring_scheme):
-    """Compute the predicted activity probability for a target from VS results.
+    """Compute the predicted activity probability of hits agains a target from VS results.
 
     Multiplies each model's hit vector by its precision, then collapses across models
     using the chosen scoring scheme.
@@ -50,12 +50,15 @@ def input_processing(list_vs, models_list):
     Returns:
         DataFrame (index=model_id, columns=mol_id) with 1/NaN hit indicators.
     """
-    df = pd.DataFrame(index=models_list)
+    data = {}
     for ff in list_vs:
         ph = os.path.splitext(os.path.basename(ff))[0].split('.')[1]
         mols = [i.strip().split()[0] for i in open(ff).readlines()]
         for mol_id in mols:
-            df.at[ph, mol_id] = 1
+            if mol_id not in data:
+                data[mol_id] = {}
+            data[mol_id][ph] = 1
+    df = pd.DataFrame(data, index=models_list)
     return df
 
 
