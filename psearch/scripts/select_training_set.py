@@ -61,13 +61,23 @@ def read_file(fname, fcfp4):
     df.to_csv(os.path.splitext(fname)[0] + '_sorted.smi', sep='\t', index=None)
 
     if fcfp4:
-        fp = [(AllChem.GetMorganFingerprint(Chem.MolFromSmiles(smiles), 2, useFeatures=True)) for smiles in df['smiles']]
+        fp = []
+        for smiles in df['smiles']:
+            mol = Chem.MolFromSmiles(smiles)  # updated: None guard - MolFromSmiles returns None silently on parse failure
+            if mol is None:
+                raise ValueError(f"Could not parse SMILES: {smiles!r}")
+            fp.append(AllChem.GetMorganFingerprint(mol, 2, useFeatures=True))
     else:
         featfactory = load_factory()
         sigfactory = SigFactory(featfactory, minPointCount=2, maxPointCount=3, trianglePruneBins=False)
         sigfactory.SetBins([(0, 2), (2, 5), (5, 8)])
         sigfactory.Init()
-        fp = [(Generate.Gen2DFingerprint(Chem.MolFromSmiles(smiles), sigfactory)) for smiles in df['smiles']]
+        fp = []
+        for smiles in df['smiles']:
+            mol = Chem.MolFromSmiles(smiles)  # updated: None guard - MolFromSmiles returns None silently on parse failure
+            if mol is None:
+                raise ValueError(f"Could not parse SMILES: {smiles!r}")
+            fp.append(Generate.Gen2DFingerprint(mol, sigfactory))
     return df, fp
 
 
