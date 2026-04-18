@@ -14,7 +14,8 @@ from multiprocessing import Pool
 from functools import partial
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from psearch.database import DB
+# from psearch.database import DB
+from psearch.database import load_model, get_bin_step, get_mol_names
 
 
 path_query = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pharmacophores', 'chembl_models')
@@ -26,7 +27,7 @@ def create_parser():
     """Build the CLI argument parser for screen_db."""
     parser = argparse.ArgumentParser(description='Screen DB with compounds against pharmacophore queries.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--dbname', metavar='FILENAME.dat', type=str, required=True,
+    parser.add_argument('-d', '--dbname', metavar='FILENAME.db', type=str, required=True,
                         help='input database with generated conformers and pharmacophores.')
     parser.add_argument('-q', '--query', metavar='FILENAME(S) or DIRNAME(S)', type=str, nargs='+', default=None,
                         help='pharmacophore model(s) or directory path(s). If a directory is specified all '
@@ -56,19 +57,22 @@ def create_parser():
     return parser
 
 
-def load_confs(mol_name, db, bin_step):
+def load_confs(mol_name, db_path, bin_step):
     """Load all conformers for a compound from the database and reconstruct Pharmacophore objects.
 
     Args:
         mol_name: Compound identifier string.
-        db: Open DB instance.
+        db_path: Path to the psearch SQLite database file.
         bin_step: Bin width (Å) used to build the Pharmacophore objects; must match the database.
 
     Returns:
         List of Conformer namedtuples (stereo_id, conf_id, fp, pharmacophore).
     """
-    fp_dict = db.get_fp(mol_name)
-    ph_dict = db.get_pharm(mol_name)
+    # fp_dict = db.get_fp(mol_name)
+    # ph_dict = db.get_pharm(mol_name)
+    record = load_model(db_path, mol_name)
+    fp_dict = record.fp_dict
+    ph_dict = record.pharm_dict
     res = []
     for stereo_id in fp_dict:
         try:
@@ -76,7 +80,7 @@ def load_confs(mol_name, db, bin_step):
                 p = Pharmacophore(bin_step=bin_step)
                 p.load_from_feature_coords(coord)
                 res.append(Conformer(stereo_id, conf_id, fp, p))
-        except:
+        except Exception:
             print(mol_name)
     return res
 
@@ -129,7 +133,7 @@ def read_models(queries, output, bin_step, min_features):
     return res
 
 
-def screen(mol_name, db, models, output_sdf, match_first_conf, bin_step):
+def screen(mol_name, db_path, models, output_sdf, match_first_conf, bin_step):
     """Screen all conformers of a compound against a list of pharmacophore models.
 
     For each model, iterates over conformers and uses a fingerprint pre-filter before
@@ -137,7 +141,7 @@ def screen(mol_name, db, models, output_sdf, match_first_conf, bin_step):
 
     Args:
         mol_name: Compound identifier string.
-        db: Open DB instance.
+        db_path: Path to the psearch SQLite database file.
         models: List of Model namedtuples from read_models.
         output_sdf: If True, also retrieve the transformation matrix and RMSD for SDF output.
         match_first_conf: If True, stop after the first matching conformer per model
@@ -155,7 +159,7 @@ def screen(mol_name, db, models, output_sdf, match_first_conf, bin_step):
     get_transform_matrix = output_sdf
     get_rms = output_sdf
 
-    confs = load_confs(mol_name, db, bin_step)
+    confs = load_confs(mol_name, db_path, bin_step)
 
     output = []
     for model in models:
@@ -173,7 +177,7 @@ def screen(mol_name, db, models, output_sdf, match_first_conf, bin_step):
     return output
 
 
-def save_results(results, output_sdf, db):
+def save_results(results, output_sdf, db_path):
     """Write screening hits to text hit-list files and, optionally, to SDF files.
 
     Hit-list files contain one tab-separated line per hit: mol_name, stereo_id, conf_id.
@@ -184,7 +188,8 @@ def save_results(results, output_sdf, db):
         results: List of tuples returned by screen — either 4-element (text only) or
                  6-element (text + matrix + rms) when output_sdf is True.
         output_sdf: If True, also write SDF files alongside the hit-list files.
-        db: Open DB instance (needed to retrieve 3D coordinates for SDF output).
+        db_path: Path to the psearch SQLite database file (needed to retrieve 3D
+                 coordinates for SDF output).
     """
     # Group by output filename to batch writes and minimise open/close calls
     created_dirs = set()
@@ -211,7 +216,8 @@ def save_results(results, output_sdf, db):
             with open(os.path.splitext(out_fname)[0] + '.sdf', 'a') as f:
                 w = Chem.SDWriter(f)
                 for mol_name, stereo_id, conf_id, matrix, rms in sdf_items:
-                    m = db.get_mol(mol_name)[stereo_id]
+                    # m = db.get_mol(mol_name)[stereo_id]
+                    m = load_model(db_path, mol_name).mol_dict[stereo_id]
                     AllChem.TransformMol(m, matrix, conf_id)
                     m.SetProp('_Name', f'{mol_name}-{stereo_id}-{conf_id}')
                     m.SetProp("RMSD", str(round(rms, 4)))
@@ -249,8 +255,9 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
     if output.endswith('.sdf'):  # forcibly set output format
         output_sdf = True
 
-    db = DB(db_fname, flag='r')
-    bin_step = db.get_bin_step()
+    # db = DB(db_fname, flag='r')
+    # bin_step = db.get_bin_step()
+    bin_step = get_bin_step(db_fname)
     models = read_models(queries, output, bin_step, min_features)   # return list of Model namedtuples
     for model in models:
         if os.path.isfile(model.output_filename):
@@ -258,25 +265,26 @@ def screen_db(db_fname, queries, output, output_sdf, match_first_conf, min_featu
         if output_sdf and os.path.isfile(os.path.splitext(model.output_filename)[0] + '.sdf'):
             os.remove(os.path.splitext(model.output_filename)[0] + '.sdf')
 
-    comp_names = db.get_mol_names()
+    # comp_names = db.get_mol_names()
+    comp_names = get_mol_names(db_fname)
 
     if ncpu == 1:
         for i, comp_name in enumerate(comp_names, 1):
-            res = screen(mol_name=comp_name, db=db, models=models, output_sdf=output_sdf,
+            res = screen(mol_name=comp_name, db_path=db_fname, models=models, output_sdf=output_sdf,
                          match_first_conf=match_first_conf, bin_step=bin_step)
             if res:
-                save_results(res, output_sdf, db)
+                save_results(res, output_sdf, db_fname)
             if verbose and i % 10 == 0:
                 current_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
                 sys.stderr.write('\r{} molecules passed/conformers {}'.format(i, current_time))
                 sys.stderr.flush()
     else:
         with Pool(ncpu) as p:
-            for i, res in enumerate(p.imap_unordered(partial(screen, db=db, models=models, output_sdf=output_sdf,
+            for i, res in enumerate(p.imap_unordered(partial(screen, db_path=db_fname, models=models, output_sdf=output_sdf,
                                                 match_first_conf=match_first_conf, bin_step=bin_step),
                                                 comp_names, chunksize=10), 1):
                 if res:
-                    save_results(res, output_sdf, db)
+                    save_results(res, output_sdf, db_fname)
                 if verbose and i % 10 == 0:
                     current_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
                     sys.stderr.write('\r{} molecules screened {}'.format(i, current_time))
