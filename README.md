@@ -1,151 +1,202 @@
-# PSearch - 3D ligand-based pharmacophore modeling
+# PSearch — 3D Ligand-Based Pharmacophore Modeling
 
-PSearch is a tool to generate 3D ligand-based pharmacophore models and perform virtual screening with them.
+PSearch is a tool for generating 3D ligand-based pharmacophore models and performing virtual screening. It enumerates stereoisomers, embeds 3D conformers, computes pharmacophore fingerprints, builds models from clustered active sets, and ranks screened molecules by predicted activity probability.
 
 ## Installation
 
 ```bash
+# Latest release from PyPI
 pip install psearch
+
+# Development version from GitHub
 pip install -U git+https://github.com/meddwl/psearch.git
 ```
 
-## Dependency
- 
-`python >= 3.4`  
-`rdkit >= 2017.09`  
-`networkx >= 2`  
-`pmapper >= 0.4.1`  
+## Requirements
+
+- Python >= 3.10
+- [RDKit](https://www.rdkit.org/)
+- [pmapper](https://github.com/DrrDom/pmapper) >= 0.4.1
+
+## Workflow Overview
+
+```
+Input SMILES
+     │
+     ▼
+  gen_db          ← build conformer/pharmacophore database
+     │
+     ▼
+  psearch         ← cluster actives, generate models, screen, validate
+  (or separately:
+    screen_db     ← screen a database with pharmacophore models
+    external_stat ← compute external validation statistics
+    prediction    ← rank molecules by predicted activity)
+```
+
+## Usage
+
+### 1. Build a conformer/pharmacophore database — `gen_db`
+
+Reads a 2D SMILES file, enumerates stereoisomers, embeds 3D conformers (ETKDGv3 + MMFF), and stores the results in a single-file SQLite database (`.db`).
+
+```bash
+gen_db -i molecules.smi -d dbs/molecules.db -c 4 -v
+```
+
+The input SMILES file must be **tab-separated** with three columns: `SMILES`, `compound_id`, `activity` (1 = active, 0 = inactive).
+
+| Argument | Default | Description |
+|---|---|---|
+| `-i` / `--input` | required | Input 2D SDF or tab-separated SMILES file |
+| `-d` / `--db` | required | Output database path (must have `.db` extension) |
+| `-c` / `--ncpu` | 1 | Number of CPUs |
+| `-n` / `--nconf` | 50 | Number of conformers per stereoisomer |
+| `-s` / `--nstereo` | 5 | Maximum stereoisomers per compound |
+| `-e` / `--energy_cutoff` | None | Discard conformers with MMFF energy > cutoff above lowest (kcal/mol) |
+| `-r` / `--rms` | None | Discard conformers with pairwise RMS below cutoff (Å) |
+| `-b` / `--bin_step` | 1 | Bin width (Å) for pharmacophore coordinate discretisation |
+| `-p` / `--pharm_def` | None | Custom pmapper feature definition file |
+| `--seed` | -1 | Random seed for conformer embedding (-1 = no seed) |
+| `-v` / `--verbose` | False | Print progress to stdout |
+
+If duplicate SMILES or compound IDs are detected in the input, a corrected `*-updated.smi` file is written alongside the original.
+
+---
+
+### 2. Build models and screen — `psearch`
+
+Full pipeline: clusters active compounds, generates pharmacophore models, screens the database, and computes external validation statistics.
+
+```bash
+psearch -i molecules.smi -d dbs/molecules.db -p my_project/ -c 4
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `-i` / `--molecules` | required | Tab-separated SMILES file (SMILES, mol_id, activity) |
+| `-d` / `--database` | required | Database built with `gen_db` |
+| `-p` / `--project_dir` | auto | Project directory for all outputs |
+| `-m` / `--mode_train_set` | [1, 2] | Training-set strategy: 1 = centroid set; 2 = one set per cluster |
+| `-t` / `--threshold` | 0.4 | Butina clustering threshold |
+| `-l` / `--lower` | 3 | Minimum number of pharmacophore features per model |
+| `-u` / `--upper` | None | Maximum number of pharmacophore features per model |
+| `-b` / `--bin_step` | 1 | Bin width (Å) |
+| `-tol` / `--tolerance` | 0 | Tolerance for stereoconfiguration sign calculation |
+| `--fcfp4` | False | Use FCFP4 fingerprints for clustering (default: pharmacophore FP) |
+| `-c` / `--ncpu` | 1 | Number of CPUs |
+
+**Project directory structure after a run:**
+
+```
+my_project/
+├── trainset/               ← training set files per cluster
+├── models/                 ← pharmacophore model files (.xyz)
+│   └── <db>.t<n>_f<n>_p<n>.xyz
+├── raw_screen/             ← per-model screening hit lists
+└── external_statistics.txt ← validation metrics (precision, recall, …)
+```
+
+---
+
+### 3. Screen a database — `screen_db`
+
+Screens a database against one or more pharmacophore models. If no query is provided, the built-in ChEMBL pharmacophore models are used.
+
+```bash
+# Screen with custom models
+screen_db -d dbs/molecules.db -q my_project/models/ -o my_project/vs/ -c 4 -v
+
+# Screen with built-in ChEMBL models (multiprofiling)
+screen_db -d dbs/molecules.db -o profiling/vs/ -c 4 -v
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `-d` / `--dbname` | required | Input database (`.db` file) |
+| `-q` / `--query` | built-in | Model file(s) or directory; uses ChEMBL built-in models if omitted |
+| `-o` / `--output` | required | Output file (`.txt`) or directory for hit lists |
+| `-f` / `--min_features` | None | Skip models with fewer distinct-coordinate features than this |
+| `-z` / `--output_sdf` | False | Write matching 3D conformers to SDF alongside hit lists |
+| `--conf` | False | Report each matching conformer separately (required for CCA scoring) |
+| `-c` / `--ncpu` | 1 | Number of CPUs |
+| `-v` / `--verbose` | False | Print progress to stdout |
+
+---
+
+### 4. Predict activity — `prediction`
+
+Computes the probability of activity for each molecule based on virtual screening results. Uses the precision of individual pharmacophore models for consensus scoring.
+
+```bash
+prediction -s my_project/vs/ -p my_project/external_statistics.txt -f mean -o results.txt
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `-s` / `--path_vs` | required | Directory with `screen_db` hit-list `.txt` files |
+| `-p` / `--pharm_stat` | built-in | File with model precision statistics; uses built-in ChEMBL stats if omitted |
+| `-f` / `--scoring_scheme` | `mean` | Consensus scoring: `max` = highest probability; `mean` = average |
+| `-o` / `--output` | auto | Output TSV file for predictions |
+
+---
+
+### 5. Compute external validation statistics — `external_stat`
+
+Calculates external validation metrics for a set of pharmacophore models against a labelled test set.
+
+```bash
+external_stat -i molecules.smi -t my_project/trainset/ -m my_project/models/ -s my_project/raw_screen/ -o stats.txt
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `-i` / `--molecules` | required | Tab-separated SMILES file (SMILES, mol_id, activity) |
+| `-t` / `--trainset` | required | Directory with training set files |
+| `-m` / `--models` | required | Directory with pharmacophore model files |
+| `-s` / `--screen` | required | Directory with screening results |
+| `-o` / `--output` | auto | Output TSV file for validation statistics |
+
+---
 
 ## Example
-The demonstration of the tool is carried out on the example of the target CHEMBL5719. A shortened sample of 233 structures is proposed.
 
-### Creation of ligand-based pharmacophore models
-It is recommended to create an empty dir which would be your `$PROJECT_DIR` and copy an input file to that location.
-In our case, PROJECT_DIR=example/test.
-There are two steps of pharmacophore model generation.
+The `example/` directory contains sample input files:
 
-1. Generation of a database with precomputed conformers and pharmacophores. 
+- `cdk8.smi` — 233 CDK8 ligands (CHEMBL5719) for model building
+- `mols_for_profiling.smi` — molecules for multiprofiling against built-in ChEMBL models
 
-```python
-gen_db -i cdk8.smi -d dbs/cdk8.dat -c 4 -v
-```
-`-i` - path to the input SMILES file  
-`-d` - path to database (should have extension .dat)  
-`-c` - number of CPUs to use  
-`-v` - print progress to STDERR  
-There are other arguments which one can tune. Invoke script with `-h` key to get full information.  
-Generating the database on 4 cores will take up to 15 minutes  
+**Ligand-based pharmacophore modeling:**
 
-The script generates stereoisomers and conformers, creates the database of compounds with labeled pharmacophore features.  
-
-The script takes as input a tab-separated SMILES file containing `SMILES`, `compound id`, `activity` columns. 
-The third column should contain a number `1` or `0`. If there are bad structures in the input smi-file they 
-will be omitted and a new smi-file will be created without these structures. The original input file 
-will be backed up with another name (`#cdk8.smi.1#`).
-
-2. Model building.  
-
-```python
-psearch -p my_models/created_pharmacophores/ -i cdk8.smi -d dbs/cdk8.dat -c 4
-```
-`-p` - path to the models directory where training set files, pharmacophore models, screening results and external model statistics will be stored  
-`-i` - path to the input SMILES file  
-`-d` - path to the database generated on the previous step  
-`-c`- number of CPUs to use  
-
-Other arguments are available at the command line.
-
-This will create several folders within the `my_models` folder. The `models` folder contains the generated pharmacophore models. 
-File names use the following naming convention: `<database_name>.t<train_set_number>_f<number_of_features>_p<sequentional_model_number>.xyz`.
-The `raw_screen` folder contains results of screening of the compounds in database. External statistics for molecules of the test set will be calculated.
-The `trainset` folder contains training sets. `external_statistics.txt` is a file with validation statistics 
-(molecules which were not used to train particular models are used as corresponding test sets).
-
-You will receive a progress notification:
-```
-train set t2: 2 models (112.368s)
-train set t1: 14 models (134.545s)
-train set t3: 1 models (155.38s)
-train set centroids: 4 models (52.758s)
-train set t0: 2 models (287.577s)
-train set t4: 1 models (265.789s)
-230 molecules screened 00:00:12
-external_statistics.txt: (0.587s)
+```bash
+gen_db -i example/cdk8.smi -d dbs/cdk8.db -c 4 -v
+psearch -i example/cdk8.smi -d dbs/cdk8.db -p my_project/ -c 4
 ```
 
-### Virtual screening of a chemical database using pharmacophore models 
+**Multiprofiling against built-in ChEMBL models:**
 
-1. Database creation using the same procedure as described above.   
-*we skip this step here and will use the same database used for model training.
-
-2. Virtual screening.
-  
-```python
-screen_db -d dbs/cdk8.dat -q my_models/created_pharmacophores/models/ -o my_models/vs/ -c 4 -v
+```bash
+gen_db -i example/mols_for_profiling.smi -d dbs/profiling.db -c 4 -v
+screen_db -d dbs/profiling.db -o profiling/vs/ -c 4 -v
+prediction -s profiling/vs/ -o profiling/results.txt
 ```
-`-d` - input generated database  
-`-q` - pharmacophore model or models or a directory with models. If a directory would be specified all pma- and xyz-files will be recognized as pharmacophores and will be used for screening  
-`-o` - path to an output directory if multiple models were supplied for screening or a path to a text/sdf file  
-`-c`- number of CPUs to use  
-`-v` - print progress to STDERR  
-
-If sdf output is desired a user should add `-z` argument which will force output format to be sdf.
-
-3. Calculating probability of the activity of molecules towards the protein and rank molecules.  
-
-```python
-prediction -s my_models/vs/models -p my_models/created_pharmacophores/external_statistics.txt -f max -o my_models/results.txt
-```
-`-s` - path to the virtual screening result  
-`-p` - file with the calculated precision of pharmacophore models  
-`-f` - one of the two schemes (max and mean) of probability calculation for consensus prediction based on the individual precision of pharmacophore models 
-`-o` - output text file where will be saved the prediction
-
-
-### Profiling of molecules using multiple pharmacophores
-
-1. Database creation using the same procedure as described above. 
-
-The following protocol can be used for profiling of molecules. By default, multiprofiling is performed on 
-psearch ligand-based pharmacophore models which were cheated using data from ChEMBL. Additional information about 
-the psearch pharmacophore models can be found in the pharmacophores folder.
-
-```python
-gen_db -i mols_for_profiling.smi -d dbs/mols_for_profiling.dat -c 4 -v
-```
-
-2. Virtual screening.
-  
-```python
-screen_db -d dbs/mols_for_profiling.dat -o multiprofiling/vs/ -c 4 -v
-```
-
-3. Calculating probability of the activity of molecules towards the protein and rank molecules.
-The scheme of how the probability is calculated is described in the [article](https://doi.org/10.3390/molecules25020385) below
-
-```python
-prediction -s multiprofiling/vs/ -o multiprofiling/result_multiprofiling.txt
-```
-`-s` - path to the virtual screening result  
-`-o` - output text file where will be saved the prediction 
-
-## Documentation
-
-All scripts have `-h` argument to retrieve descriptions of all available options and arguments.
 
 ## Authors
-Alina Kutlushina, Pavel Polishchuk
+
+Alina Denzler, Pavel Polishchuk
 
 ## Citation
+
 Ligand-Based Pharmacophore Modeling Using Novel 3D Pharmacophore Signatures  
 Alina Kutlushina, Aigul Khakimova, Timur Madzhidov, Pavel Polishchuk  
 *Molecules* **2018**, 23(12), 3094  
 https://doi.org/10.3390/molecules23123094
 
 Probabilistic Approach for Virtual Screening Based on Multiple Pharmacophores  
-Timur Madzhidov, Assima Rakhimbekova, Alina Kutlushuna, Pavel Polishchuk  
+Timur Madzhidov, Assima Rakhimbekova, Alina Kutlushina, Pavel Polishchuk  
 *Molecules* **2020**, 25(2), 385  
-https://doi.org/10.3390/molecules25020385  
+https://doi.org/10.3390/molecules25020385
 
 ## License
-BSD-3 clause
+
+BSD-3-Clause
