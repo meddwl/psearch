@@ -1,1 +1,4 @@
 .idea
+.vscode
+__pycache__
+psearch.egg-info
