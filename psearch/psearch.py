@@ -7,6 +7,7 @@
 import os
 import sys
 import argparse
+from datetime import datetime
 from multiprocessing import Pool
 from psearch.screen_db import screen_db
 from psearch.scripts.external_statistics import calc_stat
@@ -119,6 +120,10 @@ def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, pat
         ncpu: Number of parallel worker processes.
         save_stat: If True, save intermediate model generation statistics.
     """
+
+    date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+    sys.stdout.write(f"Training set forming started. {date_time}\n")
+
     # formation of a training set
     list_ts = trainingset_formation(input_mols=in_mols,
                                     path_ts=path_ts,
@@ -130,6 +135,9 @@ def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, pat
     if type(list_ts) == str:
         sys.exit(list_ts)
 
+    date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+    sys.stdout.write(f"Pharmacophores design started. {date_time}\n")
+
     with Pool(ncpu) as p:
         for _ in p.imap_unordered(creating_pharmacophore_mp, get_items(in_db=in_db, list_ts=list_ts, path_pma=path_pma,
                                                                        upper=upper, lower=lower,
@@ -137,6 +145,9 @@ def main(in_mols, in_db, path_ts, path_pma, path_screen, path_external_stat, pat
                                                                        bin_step=bin_step, tolerance=tolerance,
                                                                        save_stat=save_stat)):
             pass
+
+    date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+    sys.stdout.write(f"Validation of the created pharmacophore started. {date_time}\n")
 
     # validation of the created pharmacophore queries
     screen_db(db_fname=in_db,
@@ -166,8 +177,8 @@ def entry_point():
          path_pma=pp_model,
          path_screen=os.path.abspath(args.screening) if args.screening else os.path.join(project_dir, 'raw_screen'),
          path_external_stat=os.path.abspath(args.external_statistics) if args.external_statistics else
-                            os.path.join(project_dir, 'external_statistics.txt'),
-         path_clus_stat=os.path.join(pp_model, 'cluster_stat_trh{}.txt'.format(args.threshold)),
+                            os.path.join(project_dir, 'statistics.txt'),
+         path_clus_stat=os.path.join(project_dir, 'cluster_stat_trh{}.txt'.format(args.threshold)),
          mode_train_set=args.mode_train_set,
          fcfp4=args.fcfp4,
          threshold=float(args.threshold),
