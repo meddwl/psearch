@@ -52,7 +52,7 @@ def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
         Tuple of (target_id, model_id, TP, FP, P, N, precision, recall, FPR,
                   F1, F2, F05, BA, EF, uniq_features, max_dist, feature_labels).
     """
-    terget_id = os.path.splitext(os.path.basename(path_mols))[0]
+    target_id = os.path.splitext(os.path.basename(path_mols))[0]
     p = P()
     p.load_from_xyz(path_pma)
     feature_coords = p.get_feature_coords()
@@ -116,7 +116,7 @@ def get_external_stat(path_mols, path_ts, path_pma, pp_screen, model_id):
         f05 = (1.25 * precision * recall) / (0.25 * precision + recall)
     else:
         ef, f1, f2, f05 = None, None, None, None
-    return terget_id, model_id, tp, fp, p, n, precision, recall, fpr, f1, f2, f05, ba, ef, num_uniq_features, medge, labels
+    return target_id, model_id, tp, fp, p, n, precision, recall, fpr, f1, f2, f05, ba, ef, num_uniq_features, medge, labels
 
 
 def calc_stat(path_mols, path_ts, pp_models, path_screen, out_external):
