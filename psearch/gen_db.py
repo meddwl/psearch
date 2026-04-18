@@ -147,9 +147,11 @@ def gen_conf(mol, num_confs, seed):
     mol = Chem.AddHs(mol)
     params = AllChem.ETKDGv3()
     params.randomSeed = seed
-    params.maxAttempts = num_confs * 4
+    params.maxIterations = num_confs * 4  # updated: maxAttempts renamed to maxIterations in newer RDKit
     AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, params=params)
-    AllChem.MMFFOptimizeMoleculeConfs(mol, numThreads=0)  # numThreads=0 uses all available cores
+    if mol.GetNumConformers() == 0:
+        return None
+    AllChem.MMFFOptimizeMoleculeConfs(mol, numThreads=1)
     return mol
 
 
@@ -169,8 +171,13 @@ def remove_confs(mol, energy, rms):
              None disables the RMS filter.
     """
     e = []
+    mmff_props = AllChem.MMFFGetMoleculeProperties(mol)  # updated: hoisted - topology-only object, identical for all conformers
     for conf in mol.GetConformers():
-        ff = AllChem.MMFFGetMoleculeForceField(mol, AllChem.MMFFGetMoleculeProperties(mol), confId=conf.GetId())
+        ff = AllChem.MMFFGetMoleculeForceField(
+            mol,
+            mmff_props,
+            confId=conf.GetId(),
+        )
         if ff is None:
             sys.stderr.write(Chem.MolToSmiles(mol) + ". MMFFGetMoleculeForceField return NONE\n")
             return
