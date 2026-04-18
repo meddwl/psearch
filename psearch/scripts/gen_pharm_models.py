@@ -325,5 +325,5 @@ if __name__ == '__main__':
                      tolerance=args.tolerance,
                      current_nfeatures=args.lower,
                      upper=int(args.upper) if args.upper is not None else None,
-                     nfeatures=int(args.save_model_complexity) if args.upper is not None else None,
+                     nfeatures=int(args.save_model_complexity) if args.save_model_complexity is not None else None,
                      save_statistics=args.save_statistics)
