@@ -275,11 +275,14 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
         date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
         sys.stdout.write(f"Database creation started. {date_time}\n")
 
-    if out_fname.lower().endswith('.dat'):
-        db = DB(out_fname, flag='n')
-        db.write_bin_step(bin_step)
-    else:
-        raise Exception("Wrong output file format. Can be only DAT.\n")
+    # OLD: if out_fname.lower().endswith('.dat'):
+    #     db = DB(out_fname, flag='n')
+    #     db.write_bin_step(bin_step)
+    # else:
+    #     raise Exception("Wrong output file format. Can be only DAT.\n")
+    if not out_fname.lower().endswith('.db'):
+        raise Exception("Wrong output file format. Can be only DB.\n")
+    init_db(out_fname, bin_step, pharm_def)
 
     mols, smis, cids, flags = check_dupl_input(in_fname)
     nprocess = min(cpu_count(), max(ncpu, 1))
@@ -291,9 +294,10 @@ def create_db(in_fname, out_fname, nconf, nstereo, energy, rms, ncpu, bin_step, 
                 if not data:
                     continue
                 mol_name, mol_dict, ph_dict, fp_dict = data
-                db.write_mol(mol_name, mol_dict)
-                db.write_pharm(mol_name, ph_dict)
-                db.write_fp(mol_name, fp_dict)
+                # db.write_mol(mol_name, mol_dict)
+                # db.write_pharm(mol_name, ph_dict)
+                # db.write_fp(mol_name, fp_dict)
+                save_model(out_fname, mol_name, CompoundRecord(mol_dict, ph_dict, fp_dict))
 
                 if i % 200 == 0:
                     if verbose:
@@ -334,6 +338,8 @@ def entry_point():
                  "--stereo and/or --nconf can not be set to 0, otherwise, the database will not be created correctly.")
 
     fdb = os.path.abspath(args.db)
+    if not fdb.lower().endswith('.db'):
+        sys.exit("Output database file must have a .db extension.")
     if os.path.exists(fdb):
         sys.exit(f"Database with this {fdb} name already exists")
     else:
