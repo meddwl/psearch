@@ -249,7 +249,7 @@ def gen_pharm_models(in_db, out_pma, trainset, tolerance, bin_step, current_nfea
                             positives, clust_strategy, designating)
     if df.empty:
         sys.stderr.write(f'train set {cluster_id}: no {current_nfeatures}-points pharmacophore models\n')
-        sys.exit(0)
+        return
 
     if save_statistics:
         path_files = os.path.join(out_pma, 'intermediate_data')
